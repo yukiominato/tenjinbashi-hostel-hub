@@ -127,16 +127,48 @@
     }
 
     /* ── Hero ────────────────────────────────────────────── */
-    .hero { margin-bottom: 24px; }
+    .hero { margin-bottom: 20px; }
     .hero h1 {
       font-family: 'Zen Maru Gothic',sans-serif;
       font-size: clamp(22px,5vw,30px); font-weight: 700; line-height: 1.25;
-      margin-bottom: 8px;
       background: var(--primary-grad);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    .tagline { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+    /* ── Concept card ────────────────────────────────────── */
+    .concept-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    .concept-label {
+      font-family: 'Zen Maru Gothic',sans-serif;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--primary); margin-bottom: 10px;
+    }
+    .concept-headline {
+      font-family: 'Zen Maru Gothic',sans-serif;
+      font-size: clamp(15px,2.5vw,17px); font-weight: 700;
+      line-height: 1.5; color: var(--text); margin-bottom: 12px;
+    }
+    .concept-bullets {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .concept-bullet {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; color: var(--text-dim); line-height: 1.5;
+    }
+    .concept-bullet::before {
+      content: '';
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--primary); flex-shrink: 0; margin-top: 7px;
+    }
 
     /* ── Mobile accordion stepper ────────────────────────── */
     .mobile-phase-bar {
@@ -737,6 +769,17 @@ function mobilePhaseSummaryHTML(phases){
     </div>`;
 }
 
+function conceptCardHTML(concept){
+  if(!concept||!concept.headline) return '';
+  const bullets=(concept.bullets||[]).map(b=>`<div class="concept-bullet">${esc(b)}</div>`).join('');
+  return `
+    <div class="concept-card">
+      <div class="concept-label">現在の構想</div>
+      <div class="concept-headline">「${esc(concept.headline)}」</div>
+      ${bullets?`<div class="concept-bullets">${bullets}</div>`:''}
+    </div>`;
+}
+
 window.toggleMobilePhases=function(){
   const acc=document.getElementById('mob-stepper');
   const chev=document.getElementById('mob-chev');
@@ -806,8 +849,9 @@ function renderHome(){
       <div class="home-main">
         <div class="hero">
           <h1>${esc(cfg.projectName)}</h1>
-          ${cfg.tagline?`<p class="tagline">${esc(cfg.tagline)}</p>`:''}
         </div>
+
+        ${conceptCardHTML(cfg.concept)}
 
         ${mobilePhaseSummaryHTML(phases)}
 
@@ -849,14 +893,19 @@ function renderHome(){
 // ═══ Project editor ═════════════════════════════════════
 function openProjectEditor(){
   const cfg=getCfg();
+  const con=cfg.concept||{};
+  const bulletsStr=(con.bullets||[]).join('\n');
   openModal('プロジェクト設定',
     `<div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
-     <div class="form-group"><label class="form-label">タグライン</label><textarea class="form-textarea" id="pe-tag" rows="3">${esc(cfg.tagline||'')}</textarea></div>`,
+     <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
+     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="4">${esc(bulletsStr)}</textarea></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        const n=document.getElementById('pe-name').value.trim();
        if(!n){alert('プロジェクト名を入力してください');return;}
-       const c={...getCfg(),projectName:n,tagline:document.getElementById('pe-tag').value.trim()};
+       const headline=document.getElementById('pe-concept').value.trim();
+       const bullets=document.getElementById('pe-bullets').value.split(/\n/).map(s=>s.trim()).filter(Boolean);
+       const c={...getCfg(),projectName:n,concept:{headline,bullets}};
        saveCfg(c);document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
        closeModal();renderHome();
      ">保存</button>`);
