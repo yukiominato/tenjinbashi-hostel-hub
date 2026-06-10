@@ -7,337 +7,171 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <style>
     :root {
-      --bg: #13111c;
-      --surface: #1c1828;
-      --surface2: #231e33;
-      --accent: #8b5cf6;
-      --accent-light: #a78bfa;
-      --accent-dim: rgba(139, 92, 246, 0.15);
-      --text: #e9e4f5;
-      --text-muted: #9d94b8;
-      --border: rgba(255, 255, 255, 0.07);
-      --border-accent: rgba(139, 92, 246, 0.35);
+      --bg:#13111c; --surface:#1c1828; --surface2:#231e33; --surface3:#2a2440;
+      --accent:#8b5cf6; --accent-light:#a78bfa; --accent-dim:rgba(139,92,246,.15);
+      --text:#e9e4f5; --text-muted:#9d94b8;
+      --border:rgba(255,255,255,.07); --border-acc:rgba(139,92,246,.35);
     }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;line-height:1.6;min-height:100vh;}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* header */
+    header{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+    .header-inner{max-width:960px;margin:0 auto;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:52px;gap:12px;}
+    .logo{font-size:13px;font-weight:700;color:var(--accent-light);text-decoration:none;white-space:nowrap;flex-shrink:0;}
+    nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+    nav::-webkit-scrollbar{display:none;}
+    nav a{color:var(--text-muted);text-decoration:none;padding:6px 9px;border-radius:6px;font-size:12px;white-space:nowrap;transition:color .15s,background .15s;min-height:44px;display:flex;align-items:center;}
+    nav a:hover{color:var(--text);background:var(--accent-dim);}
+    nav a.active{color:var(--accent-light);background:var(--accent-dim);}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
-      line-height: 1.6;
-      min-height: 100vh;
-    }
+    main{max-width:960px;margin:0 auto;padding:24px 16px 80px;}
 
-    /* ── Header ── */
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(8px);
-    }
+    /* project heading */
+    .project-heading{margin-bottom:24px;}
+    .project-heading h1{font-size:clamp(18px,5vw,24px);font-weight:800;line-height:1.3;margin-bottom:6px;}
+    .tagline{font-size:14px;color:var(--text-muted);line-height:1.6;}
 
-    .header-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 0 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 52px;
-      gap: 12px;
-    }
+    /* phase bar */
+    .phase-section{margin-bottom:28px;}
+    .phase-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .phase-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);font-weight:600;}
+    .phase-bar{display:flex;flex-wrap:wrap;gap:8px;}
+    .phase-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;line-height:1.3;}
+    .phase-pill.done{background:rgba(139,92,246,.25);color:var(--accent-light);border:1px solid rgba(139,92,246,.4);}
+    .phase-pill.active{background:rgba(139,92,246,.12);color:var(--accent-light);border:1px solid var(--accent);animation:pill-glow 2.4s ease-in-out infinite;}
+    .phase-pill.todo{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
+    @keyframes pill-glow{0%,100%{box-shadow:0 0 6px rgba(139,92,246,.25);}50%{box-shadow:0 0 18px rgba(139,92,246,.6),0 0 30px rgba(139,92,246,.2);}}
 
-    .logo {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent-light);
-      text-decoration: none;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
+    /* cards */
+    .card-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+    @media(min-width:480px){.card-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(min-width:720px){.card-grid{grid-template-columns:repeat(3,1fr);}}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-decoration:none;color:inherit;display:block;transition:border-color .15s,background .15s,transform .1s;cursor:pointer;}
+    .card:hover{border-color:var(--border-acc);background:var(--surface2);transform:translateY(-1px);}
+    .card:active{transform:translateY(0);}
+    .card-icon{font-size:22px;margin-bottom:10px;}
+    .card-title{font-size:15px;font-weight:700;margin-bottom:6px;}
+    .card-preview{font-size:13px;color:var(--text-muted);line-height:1.5;}
+    .card-meta{font-size:11px;color:var(--text-muted);margin-top:8px;}
 
-    nav {
-      display: flex;
-      gap: 2px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-    nav::-webkit-scrollbar { display: none; }
+    /* page heading */
+    .page-heading{margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .page-heading h2{font-size:20px;font-weight:800;}
+    .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent-light);text-decoration:none;font-size:14px;font-weight:500;min-height:44px;padding:8px 0;margin-bottom:16px;transition:color .15s;}
+    .back-link:hover{color:var(--text);}
 
-    nav a {
-      color: var(--text-muted);
-      text-decoration: none;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      white-space: nowrap;
-      transition: color 0.15s, background 0.15s;
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-    }
-    nav a:hover { color: var(--text); background: var(--accent-dim); }
-    nav a.active { color: var(--accent-light); background: var(--accent-dim); }
+    /* list */
+    .item-list{display:flex;flex-direction:column;gap:8px;}
+    .list-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-decoration:none;color:inherit;display:flex;justify-content:space-between;align-items:center;min-height:44px;transition:border-color .15s,background .15s;gap:12px;}
+    .list-item:hover{border-color:var(--border-acc);background:var(--surface2);}
+    .list-item-title{font-size:14px;font-weight:500;}
+    .list-item-date{font-size:12px;color:var(--text-muted);flex-shrink:0;}
 
-    /* ── Main ── */
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 28px 16px 64px;
-    }
+    /* markdown */
+    .md-content{line-height:1.85;font-size:15px;}
+    .md-content h1{font-size:22px;font-weight:800;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .md-content h2{font-size:17px;font-weight:700;margin:28px 0 12px;padding-left:12px;border-left:3px solid var(--accent);color:var(--accent-light);}
+    .md-content h3{font-size:15px;font-weight:700;margin:20px 0 8px;padding-left:10px;border-left:2px solid rgba(139,92,246,.4);}
+    .md-content p{margin:10px 0;}
+    .md-content ul,.md-content ol{padding-left:24px;margin:8px 0;}
+    .md-content li{margin:4px 0;}
+    .md-content strong{color:var(--text);font-weight:700;}
+    .md-content a{color:var(--accent-light);}
+    .md-content code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:13px;font-family:"SFMono-Regular",Consolas,monospace;}
+    .md-content pre{background:var(--surface2);border:1px solid var(--border);padding:16px;border-radius:8px;overflow-x:auto;margin:12px 0;}
+    .md-content pre code{background:none;padding:0;}
+    .md-content blockquote{border-left:3px solid var(--accent);padding-left:16px;margin:12px 0;color:var(--text-muted);}
+    .md-content hr{border:none;border-top:1px solid var(--border);margin:24px 0;}
 
-    /* ── Home: project heading ── */
-    .project-heading { margin-bottom: 28px; }
-    .project-heading h1 {
-      font-size: clamp(18px, 5vw, 24px);
-      font-weight: 800;
-      color: var(--text);
-      margin-bottom: 6px;
-      line-height: 1.3;
-    }
-    .project-heading .tagline {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
+    /* buttons */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:background .15s,transform .1s;min-height:44px;text-decoration:none;font-family:inherit;}
+    .btn:active{transform:scale(.97);}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover{background:#7c3aed;}
+    .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+    .btn-secondary:hover{border-color:var(--border-acc);}
+    .btn-ghost{background:transparent;color:var(--accent-light);border:1px solid var(--border-acc);}
+    .btn-ghost:hover{background:var(--accent-dim);}
+    .btn-danger{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+    .btn-danger:hover{background:rgba(239,68,68,.25);}
+    .btn-sm{padding:5px 12px;font-size:13px;min-height:36px;}
+    .icon-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;padding:4px;border-radius:6px;font-size:14px;transition:color .15s,background .15s;min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;font-family:inherit;}
+    .icon-btn:hover{color:var(--text);background:var(--surface2);}
 
-    /* ── Phase progress bar ── */
-    .phase-section { margin-bottom: 32px; }
-    .phase-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      font-weight: 600;
-    }
-    .phase-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .phase-pill {
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.3;
-    }
-    .phase-pill.done {
-      background: rgba(139, 92, 246, 0.25);
-      color: var(--accent-light);
-      border: 1px solid rgba(139, 92, 246, 0.4);
-    }
-    .phase-pill.active {
-      background: rgba(139, 92, 246, 0.12);
-      color: var(--accent-light);
-      border: 1px solid var(--accent);
-      animation: pill-glow 2.4s ease-in-out infinite;
-    }
-    .phase-pill.todo {
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid var(--border);
-    }
+    /* modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+    .modal-overlay.open{opacity:1;pointer-events:all;}
+    @media(min-width:600px){.modal-overlay{align-items:center;}}
+    .modal{background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:92vh;display:flex;flex-direction:column;transform:translateY(40px);transition:transform .2s;}
+    @media(min-width:600px){.modal{border-radius:16px;transform:scale(.95);}}
+    .modal-overlay.open .modal{transform:translateY(0);}
+    @media(min-width:600px){.modal-overlay.open .modal{transform:scale(1);}}
+    .modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .modal-title{font-size:16px;font-weight:700;}
+    .modal-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:20px;padding:4px;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;border-radius:8px;}
+    .modal-close:hover{color:var(--text);background:var(--surface2);}
+    .modal-body{padding:20px;overflow-y:auto;flex:1;}
+    .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;}
 
-    @keyframes pill-glow {
-      0%, 100% { box-shadow: 0 0 6px rgba(139, 92, 246, 0.25); }
-      50%       { box-shadow: 0 0 16px rgba(139, 92, 246, 0.55), 0 0 28px rgba(139, 92, 246, 0.2); }
-    }
+    /* forms */
+    .form-group{margin-bottom:16px;}
+    .form-label{display:block;font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:6px;}
+    .form-input,.form-textarea,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;padding:10px 12px;font-family:inherit;transition:border-color .15s;}
+    .form-input:focus,.form-textarea:focus,.form-select:focus{outline:none;border-color:var(--accent);}
+    .form-textarea{resize:vertical;min-height:180px;line-height:1.7;}
+    .form-textarea.mono{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;}
 
-    /* ── Card grid ── */
-    .card-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 480px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (min-width: 720px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
+    /* phase editor */
+    .phase-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+    .phase-row-name{flex:1;background:transparent;border:none;color:var(--text);font-size:14px;font-family:inherit;padding:0;}
+    .phase-row-name:focus{outline:none;}
+    .status-btns{display:flex;gap:4px;}
+    .s-btn{padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s;background:transparent;}
+    .s-btn.done{border-color:rgba(139,92,246,.4);color:var(--accent-light);}
+    .s-btn.done.on{background:rgba(139,92,246,.25);}
+    .s-btn.active{border-color:var(--accent);color:var(--accent-light);}
+    .s-btn.active.on{background:rgba(139,92,246,.15);}
+    .s-btn.todo{border-color:var(--border);color:var(--text-muted);}
+    .s-btn.todo.on{background:var(--surface3);}
 
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      text-decoration: none;
-      color: inherit;
-      display: block;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      cursor: pointer;
-    }
-    .card:hover {
-      border-color: var(--border-accent);
-      background: var(--surface2);
-      transform: translateY(-1px);
-    }
-    .card:active { transform: translateY(0); }
+    /* key points */
+    .points-list{display:flex;flex-direction:column;gap:10px;}
+    .point-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;}
+    .point-tag{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+    .point-tag.insight{background:rgba(139,92,246,.2);color:var(--accent-light);border:1px solid rgba(139,92,246,.3);}
+    .point-tag.action{background:rgba(34,197,94,.15);color:#86efac;border:1px solid rgba(34,197,94,.3);}
+    .point-tag.question{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
+    .point-tag.risk{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);}
+    .point-body{flex:1;min-width:0;}
+    .point-text{font-size:14px;line-height:1.6;}
+    .point-meta{font-size:11px;color:var(--text-muted);margin-top:4px;}
+    .point-actions{display:flex;gap:4px;flex-shrink:0;}
 
-    .card-icon { font-size: 22px; margin-bottom: 10px; }
-    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
-    .card-preview { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-    .card-meta { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+    /* mind map */
+    .mm-wrap{border:1px solid var(--border);border-radius:12px;overflow:auto;background:var(--surface);height:520px;position:relative;}
+    #mm-svg{display:block;cursor:default;user-select:none;}
+    .mm-toolbar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border-top:1px solid var(--border);flex-wrap:wrap;}
+    .mm-sel-label{font-size:13px;color:var(--text-muted);flex:1;}
+    .mm-sel-label span{color:var(--accent-light);font-weight:600;}
 
-    /* ── Page heading ── */
-    .page-heading { margin-bottom: 24px; }
-    .page-heading h2 { font-size: 20px; font-weight: 800; }
+    /* links */
+    .links-list{display:flex;flex-direction:column;gap:8px;}
+    .link-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:space-between;min-height:44px;gap:12px;transition:border-color .15s,background .15s;}
+    .link-card:hover{border-color:var(--border-acc);background:var(--surface2);}
+    .link-label{font-size:14px;font-weight:500;}
+    .link-arrow{color:var(--accent-light);font-size:16px;flex-shrink:0;}
 
-    /* ── Back link ── */
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--accent-light);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      min-height: 44px;
-      padding: 8px 0;
-      margin-bottom: 16px;
-      transition: color 0.15s;
-    }
-    .back-link:hover { color: var(--text); }
+    /* fab */
+    .fab{position:fixed;bottom:24px;right:24px;z-index:50;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(139,92,246,.4);display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s;}
+    .fab:hover{background:#7c3aed;transform:scale(1.05);}
+    .fab:active{transform:scale(.95);}
 
-    /* ── List ── */
-    .item-list { display: flex; flex-direction: column; gap: 8px; }
-
-    .list-item {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 18px;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      min-height: 44px;
-      transition: border-color 0.15s, background 0.15s;
-      gap: 12px;
-    }
-    .list-item:hover { border-color: var(--border-accent); background: var(--surface2); }
-
-    .list-item-title { font-size: 14px; font-weight: 500; }
-    .list-item-date { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
-
-    /* ── Markdown ── */
-    .md-content {
-      line-height: 1.85;
-      font-size: 15px;
-    }
-
-    .md-content h1 {
-      font-size: 22px;
-      font-weight: 800;
-      margin: 0 0 20px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .md-content h2 {
-      font-size: 17px;
-      font-weight: 700;
-      margin: 28px 0 12px;
-      padding-left: 12px;
-      border-left: 3px solid var(--accent);
-      color: var(--accent-light);
-    }
-    .md-content h3 {
-      font-size: 15px;
-      font-weight: 700;
-      margin: 20px 0 8px;
-      padding-left: 10px;
-      border-left: 2px solid rgba(139, 92, 246, 0.4);
-      color: var(--text);
-    }
-    .md-content p { margin: 10px 0; }
-    .md-content ul, .md-content ol { padding-left: 24px; margin: 8px 0; }
-    .md-content li { margin: 4px 0; }
-    .md-content strong { color: var(--text); font-weight: 700; }
-    .md-content em { color: var(--text-muted); }
-    .md-content a { color: var(--accent-light); }
-    .md-content code {
-      background: var(--surface2);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-family: "SFMono-Regular", Consolas, monospace;
-    }
-    .md-content pre {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      padding: 16px;
-      border-radius: 8px;
-      overflow-x: auto;
-      margin: 12px 0;
-    }
-    .md-content pre code { background: none; padding: 0; font-size: 13px; }
-    .md-content blockquote {
-      border-left: 3px solid var(--accent);
-      padding-left: 16px;
-      margin: 12px 0;
-      color: var(--text-muted);
-    }
-    .md-content hr {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 24px 0;
-    }
-    .md-content table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0;
-      font-size: 14px;
-    }
-    .md-content th, .md-content td {
-      text-align: left;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-    }
-    .md-content th { background: var(--surface2); color: var(--accent-light); }
-
-    /* ── Links page ── */
-    .links-list { display: flex; flex-direction: column; gap: 8px; }
-    .link-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 18px;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 44px;
-      gap: 12px;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .link-card:hover { border-color: var(--border-accent); background: var(--surface2); }
-    .link-label { font-size: 14px; font-weight: 500; }
-    .link-arrow { color: var(--accent-light); font-size: 16px; flex-shrink: 0; }
-
-    /* ── Utility ── */
-    .loading {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 56px 0;
-      font-size: 14px;
-    }
-    .error {
-      background: rgba(239, 68, 68, 0.08);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      border-radius: 8px;
-      padding: 14px 16px;
-      font-size: 14px;
-      color: #fca5a5;
-    }
-    .empty {
-      color: var(--text-muted);
-      font-size: 14px;
-      padding: 24px 0;
-    }
+    /* misc */
+    .loading{text-align:center;color:var(--text-muted);padding:56px 0;font-size:14px;}
+    .error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:14px 16px;font-size:14px;color:#fca5a5;}
+    .empty{color:var(--text-muted);font-size:14px;padding:24px 0;}
+    .row{display:flex;gap:8px;flex-wrap:wrap;}
   </style>
 </head>
 <body>
@@ -349,279 +183,684 @@
       <a href="#/minutes">議事録</a>
       <a href="#/decisions">決定事項</a>
       <a href="#/blueprint">設計</a>
+      <a href="#/points">ポイント</a>
+      <a href="#/ideas">アイデア</a>
       <a href="#/notes">メモ</a>
       <a href="#/links">リンク</a>
     </nav>
   </div>
 </header>
 
-<main id="app">
-  <div class="loading">読み込み中…</div>
-</main>
+<main id="app"><div class="loading">読み込み中…</div></main>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title"></span>
+      <button class="modal-close" id="modal-close-btn">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
 
 <script>
-  // ── State ──
-  let config = null;
-  let idx = null;
+// ── Storage ──────────────────────────────────────────
+const LS = {
+  get(k){try{return JSON.parse(localStorage.getItem(k));}catch{return null;}},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v));},
+  del(k){localStorage.removeItem(k);},
+};
 
-  // ── Fetch helpers ──
-  async function getJSON(path) {
-    const r = await fetch(path);
-    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`);
-    return r.json();
-  }
-  async function getText(path) {
-    const r = await fetch(path);
-    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`);
-    return r.text();
-  }
+// ── Server data ───────────────────────────────────────
+let _sCfg=null, _sIdx=null;
 
-  // ── Utils ──
-  function esc(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+// ── Data layer ────────────────────────────────────────
+const getCfg  = ()  => LS.get('cfg')    ?? _sCfg  ?? {};
+const saveCfg = (c) => LS.set('cfg',c);
+const getIdx  = ()  => LS.get('idx')    ?? _sIdx  ?? {minutes:[],notes:[]};
+const saveIdx = (i) => LS.set('idx',i);
 
-  function slugOf(file) {
-    return file.replace(/^.*\//, '').replace(/\.md$/, '');
-  }
+async function getFile(path){
+  const s=LS.get('f:'+path);
+  if(s!==null) return s;
+  return await fetchText(path);
+}
+const saveFile=(path,c)=>LS.set('f:'+path,c);
 
-  function app() { return document.getElementById('app'); }
+const getPoints  = () => LS.get('pts') ?? [];
+const savePoints = (p) => LS.set('pts',p);
 
-  // ── Router ──
-  async function init() {
-    try {
-      [config, idx] = await Promise.all([
-        getJSON('config.json'),
-        getJSON('content/index.json'),
-      ]);
-      document.getElementById('header-logo').textContent = config.projectName;
-      document.getElementById('page-title').textContent = config.projectName;
-    } catch (e) {
-      console.error('初期化エラー:', e);
-    }
-    window.addEventListener('hashchange', route);
-    route();
-  }
+function getMM(){
+  const s=LS.get('mm');
+  if(s) return s;
+  const cfg=getCfg();
+  return {
+    nextId:6,
+    nodes:[
+      {id:'root',text:cfg.projectName||'プロジェクト',x:800,y:450,pid:null},
+      {id:'2',text:'コンセプト',x:560,y:300,pid:'root'},
+      {id:'3',text:'資金調達',  x:1040,y:300,pid:'root'},
+      {id:'4',text:'運営計画',  x:560,y:600,pid:'root'},
+      {id:'5',text:'地域連携',  x:1040,y:600,pid:'root'},
+    ]
+  };
+}
+const saveMM=(m)=>LS.set('mm',m);
 
-  function route() {
-    const path = (location.hash || '#/').slice(1) || '/';
-    syncNav(path);
-    if (path === '/')                          return renderHome();
-    if (path === '/minutes')                   return renderMinutesList();
-    if (path.startsWith('/minutes/'))          return renderMinute(path.slice('/minutes/'.length));
-    if (path === '/decisions')                 return renderDecisions();
-    if (path === '/blueprint')                 return renderBlueprint();
-    if (path === '/notes')                     return renderNotesList();
-    if (path.startsWith('/notes/'))            return renderNote(path.slice('/notes/'.length));
-    if (path === '/links')                     return renderLinks();
-    renderHome();
-  }
+// ── Fetch ─────────────────────────────────────────────
+async function fetchJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(r.status+':'+p);return r.json();}
+async function fetchText(p){const r=await fetch(p);if(!r.ok)throw new Error(r.status+':'+p);return r.text();}
 
-  function syncNav(path) {
-    document.querySelectorAll('#main-nav a').forEach(a => {
-      const href = a.getAttribute('href').slice(1);
-      const isActive = path === href || (href !== '/' && path.startsWith(href + '/'));
-      a.classList.toggle('active', isActive);
+// ── Util ──────────────────────────────────────────────
+const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const slug=(f)=>f.replace(/^.*\//,'').replace(/\.md$/,'');
+const app=()=>document.getElementById('app');
+const today=()=>new Date().toISOString().split('T')[0];
+
+function dlText(content,name){
+  const a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(content);
+  a.download=name; a.click();
+}
+
+// ── Modal ─────────────────────────────────────────────
+function openModal(title,body,footer=''){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal-footer').innerHTML=footer;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('modal-close-btn').onclick=closeModal;
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+});
+
+// ── Router ────────────────────────────────────────────
+async function init(){
+  try{
+    [_sCfg,_sIdx]=await Promise.all([fetchJSON('config.json'),fetchJSON('content/index.json')]);
+    const cfg=getCfg();
+    document.getElementById('header-logo').textContent=cfg.projectName||'ダッシュボード';
+    document.getElementById('page-title').textContent=cfg.projectName||'ダッシュボード';
+  }catch(e){console.error(e);}
+  window.addEventListener('hashchange',route);
+  route();
+}
+
+function route(){
+  const path=(location.hash||'#/').slice(1)||'/';
+  document.querySelectorAll('#main-nav a').forEach(a=>{
+    const h=a.getAttribute('href').slice(1);
+    a.classList.toggle('active',path===h||(h!=='/'&&path.startsWith(h+'/')));
+  });
+  if(path==='/') return renderHome();
+  if(path==='/minutes') return renderMinutesList();
+  if(path.startsWith('/minutes/')) return renderMinute(path.slice(9));
+  if(path==='/decisions') return renderDecisions();
+  if(path==='/blueprint') return renderBlueprint();
+  if(path==='/points') return renderPoints();
+  if(path==='/ideas') return renderIdeas();
+  if(path==='/notes') return renderNotesList();
+  if(path.startsWith('/notes/')) return renderNote(path.slice(7));
+  if(path==='/links') return renderLinks();
+  renderHome();
+}
+
+// ── Home ──────────────────────────────────────────────
+function renderHome(){
+  const cfg=getCfg();
+  if(!cfg.projectName){app().innerHTML='<div class="loading">読み込み中…</div>';return;}
+  const phases=(cfg.phases||[]).map(p=>`<span class="phase-pill ${esc(p.status)}">${esc(p.name)}</span>`).join('');
+  const mins=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const lat=mins[0];
+  const latCard=lat
+    ?`<a href="#/minutes/${esc(slug(lat.file))}" class="card"><div class="card-icon">📋</div><div class="card-title">最新の議事録</div><div class="card-preview">${esc(lat.title)}</div><div class="card-meta">${esc(lat.date)}</div></a>`
+    :`<a href="#/minutes" class="card"><div class="card-icon">📋</div><div class="card-title">議事録</div><div class="card-preview">まだ議事録がありません</div></a>`;
+  app().innerHTML=`
+    <div class="project-heading" id="proj-heading">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div>
+          <h1>${esc(cfg.projectName)}</h1>
+          <p class="tagline">${esc(cfg.tagline||'')}</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="openProjectEditor()">✏️ 設定</button>
+      </div>
+    </div>
+    <div class="phase-section">
+      <div class="phase-section-header">
+        <span class="phase-label">フェーズ進捗</span>
+        <button class="btn btn-ghost btn-sm" onclick="openPhaseEditor()">✏️ 編集</button>
+      </div>
+      <div class="phase-bar">${phases}</div>
+    </div>
+    <div class="card-grid">
+      ${latCard}
+      <a href="#/decisions" class="card"><div class="card-icon">✅</div><div class="card-title">決定事項</div><div class="card-preview">重要な決定の追記式ログ</div></a>
+      <a href="#/blueprint" class="card"><div class="card-icon">📐</div><div class="card-title">ブループリント</div><div class="card-preview">全体設計・コンセプトシート</div></a>
+      <a href="#/points" class="card"><div class="card-icon">💡</div><div class="card-title">ポイントまとめ</div><div class="card-preview">${getPoints().length}件の知見・アクション</div></a>
+      <a href="#/ideas" class="card"><div class="card-icon">🗺️</div><div class="card-title">アイデアマップ</div><div class="card-preview">マインドマップでアイデアを整理</div></a>
+      <a href="#/notes" class="card"><div class="card-icon">📝</div><div class="card-title">メモ・調査資料</div><div class="card-preview">${(getIdx().notes||[]).length}件のメモ</div></a>
+      <a href="#/links" class="card"><div class="card-icon">🔗</div><div class="card-title">リンク集</div><div class="card-preview">${(getCfg().links||[]).length}件のリソース</div></a>
+    </div>`;
+}
+
+// ── Project editor ────────────────────────────────────
+function openProjectEditor(){
+  const cfg=getCfg();
+  openModal('プロジェクト設定',
+    `<div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
+     <div class="form-group"><label class="form-label">タグライン</label><textarea class="form-textarea" id="pe-tag" rows="3">${esc(cfg.tagline||'')}</textarea></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="
+       const n=document.getElementById('pe-name').value.trim();
+       const t=document.getElementById('pe-tag').value.trim();
+       if(!n){alert('プロジェクト名を入力してください');return;}
+       const c={...getCfg(),projectName:n,tagline:t};
+       saveCfg(c);
+       document.getElementById('header-logo').textContent=n;
+       document.getElementById('page-title').textContent=n;
+       closeModal();renderHome();
+     ">保存</button>`);
+}
+
+// ── Phase editor ──────────────────────────────────────
+function openPhaseEditor(){
+  const phases=(getCfg().phases||[]).map(p=>({...p}));
+  const W=window;
+  W._pd=phases;
+
+  const rows=()=>W._pd.map((p,i)=>`
+    <div class="phase-row">
+      <input class="phase-row-name" value="${esc(p.name)}" oninput="window._pd[${i}].name=this.value" placeholder="フェーズ名">
+      <div class="status-btns">
+        ${['done','active','todo'].map(s=>`<button class="s-btn ${s}${p.status===s?' on':''}" onclick="window._pd[${i}].status='${s}';_rephase()">${s==='done'?'完了':s==='active'?'進行中':'未着手'}</button>`).join('')}
+      </div>
+      <button class="icon-btn" onclick="window._pd.splice(${i},1);_rephase()">🗑</button>
+    </div>`).join('');
+
+  W._rephase=()=>{
+    document.querySelectorAll('.phase-row').forEach((r,i)=>{
+      const inp=r.querySelector('.phase-row-name');
+      if(inp&&W._pd[i]) W._pd[i].name=inp.value;
     });
-  }
+    document.getElementById('phase-rows').innerHTML=rows();
+  };
+  W._addPhase=()=>{W._pd.push({name:'新しいフェーズ',status:'todo'});_rephase();};
+  W._savePhases=()=>{
+    document.querySelectorAll('.phase-row').forEach((r,i)=>{
+      const inp=r.querySelector('.phase-row-name');
+      if(inp&&W._pd[i]) W._pd[i].name=inp.value;
+    });
+    saveCfg({...getCfg(),phases:W._pd});
+    closeModal();renderHome();
+  };
 
-  // ── Views ──
+  openModal('フェーズ進捗を編集',
+    `<div id="phase-rows">${rows()}</div>
+     <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="window._addPhase()">＋ フェーズを追加</button>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._savePhases()">保存</button>`);
+}
 
-  function renderHome() {
-    if (!config) { app().innerHTML = '<div class="loading">読み込み中…</div>'; return; }
+// ── Markdown editor ───────────────────────────────────
+function openMdEditor(title,filePath,content,onSave){
+  openModal(title,
+    `<div class="form-group"><label class="form-label">Markdown で編集</label>
+     <textarea class="form-textarea mono" id="md-ta" rows="18">${esc(content)}</textarea></div>`,
+    `<button class="btn btn-ghost btn-sm" onclick="dlText(document.getElementById('md-ta').value,'${esc(filePath.replace(/^.*\//,''))}')">⬇ ダウンロード</button>
+     <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._mdSave()">保存</button>`);
+  window._mdSave=()=>{
+    const v=document.getElementById('md-ta').value;
+    saveFile(filePath,v);
+    onSave(v);
+    closeModal();
+  };
+  setTimeout(()=>{const ta=document.getElementById('md-ta');if(ta)ta.setSelectionRange(0,0);},50);
+}
 
-    const phasePills = (config.phases || []).map(p =>
-      `<span class="phase-pill ${esc(p.status)}">${esc(p.name)}</span>`
-    ).join('');
+// ── Minutes list ──────────────────────────────────────
+function renderMinutesList(){
+  const items=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const list=items.length===0
+    ?'<p class="empty">議事録はまだありません。＋ボタンから追加してください。</p>'
+    :items.map(m=>`<a href="#/minutes/${esc(slug(m.file))}" class="list-item"><span class="list-item-title">${esc(m.title)}</span><span class="list-item-date">${esc(m.date)}</span></a>`).join('');
+  app().innerHTML=`<div class="page-heading"><h2>議事録</h2></div><div class="item-list">${list}</div>`;
+  addFab(openAddMinute);
+}
 
-    const sortedMinutes = (idx?.minutes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
-    const latest = sortedMinutes[0];
+function openAddMinute(){
+  openModal('議事録を追加',
+    `<div class="form-group"><label class="form-label">タイトル</label><input class="form-input" id="mn-t" placeholder="例: 第2回 事業計画MTG"></div>
+     <div class="form-group"><label class="form-label">日付</label><input class="form-input" id="mn-d" type="date" value="${today()}"></div>
+     <div class="form-group"><label class="form-label">内容（Markdown）</label><textarea class="form-textarea mono" id="mn-c" rows="12" placeholder="# 議事録\n\n## 議題\n- "></textarea></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._saveMinute()">追加</button>`);
+  window._saveMinute=()=>{
+    const t=document.getElementById('mn-t').value.trim();
+    const d=document.getElementById('mn-d').value.trim();
+    const c=document.getElementById('mn-c').value;
+    if(!t||!d){alert('タイトルと日付を入力してください');return;}
+    const s=d+'-'+t.replace(/[\s　]+/g,'-').replace(/[^\w぀-鿿＀-￯-]/g,'').slice(0,30)||'note';
+    const file=`minutes/${s}.md`;
+    saveFile(`content/${file}`,c);
+    const idx=getIdx();
+    idx.minutes=(idx.minutes||[]).filter(m=>slug(m.file)!==s);
+    idx.minutes.push({file,title:t,date:d});
+    saveIdx(idx);
+    closeModal();renderMinutesList();
+  };
+}
 
-    const latestCard = latest
-      ? `<a href="#/minutes/${esc(slugOf(latest.file))}" class="card">
-           <div class="card-icon">📋</div>
-           <div class="card-title">最新の議事録</div>
-           <div class="card-preview">${esc(latest.title)}</div>
-           <div class="card-meta">${esc(latest.date)}</div>
-         </a>`
-      : `<a href="#/minutes" class="card">
-           <div class="card-icon">📋</div>
-           <div class="card-title">議事録</div>
-           <div class="card-preview">まだ議事録がありません</div>
-         </a>`;
-
-    const noteCount = idx?.notes?.length || 0;
-    const linkCount = config.links?.length || 0;
-
-    app().innerHTML = `
-      <div class="project-heading">
-        <h1>${esc(config.projectName)}</h1>
-        <p class="tagline">${esc(config.tagline)}</p>
-      </div>
-
-      <div class="phase-section">
-        <div class="phase-label">フェーズ進捗</div>
-        <div class="phase-bar">${phasePills}</div>
-      </div>
-
-      <div class="card-grid">
-        ${latestCard}
-        <a href="#/decisions" class="card">
-          <div class="card-icon">✅</div>
-          <div class="card-title">決定事項</div>
-          <div class="card-preview">重要な決定の追記式ログ</div>
-        </a>
-        <a href="#/blueprint" class="card">
-          <div class="card-icon">📐</div>
-          <div class="card-title">ブループリント</div>
-          <div class="card-preview">全体設計・コンセプトシート</div>
-        </a>
-        <a href="#/notes" class="card">
-          <div class="card-icon">📝</div>
-          <div class="card-title">メモ・調査資料</div>
-          <div class="card-preview">${noteCount}件のメモ</div>
-        </a>
-        <a href="#/links" class="card">
-          <div class="card-icon">🔗</div>
-          <div class="card-title">リンク集</div>
-          <div class="card-preview">${linkCount}件のリソース</div>
-        </a>
-      </div>
-    `;
-  }
-
-  function renderMinutesList() {
-    const sorted = (idx?.minutes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
-    const listHtml = sorted.length === 0
-      ? '<p class="empty">議事録はまだありません。</p>'
-      : sorted.map(m =>
-          `<a href="#/minutes/${esc(slugOf(m.file))}" class="list-item">
-             <span class="list-item-title">${esc(m.title)}</span>
-             <span class="list-item-date">${esc(m.date)}</span>
-           </a>`
-        ).join('');
-
-    app().innerHTML = `
-      <div class="page-heading"><h2>議事録</h2></div>
-      <div class="item-list">${listHtml}</div>
-    `;
-  }
-
-  async function renderMinute(slug) {
-    app().innerHTML = `
+async function renderMinute(sl){
+  app().innerHTML=`<a href="#/minutes" class="back-link">← 一覧へ</a><div class="loading">読み込み中…</div>`;
+  const entry=(getIdx().minutes||[]).find(m=>slug(m.file)===sl);
+  const fp=entry?`content/${entry.file}`:`content/minutes/${sl}.md`;
+  let text='';
+  try{text=await getFile(fp);}
+  catch(e){app().innerHTML=`<a href="#/minutes" class="back-link">← 一覧へ</a><div class="error">ファイルが見つかりませんでした: ${esc(fp)}</div>`;return;}
+  const render=(t)=>{
+    app().innerHTML=`
       <a href="#/minutes" class="back-link">← 一覧へ</a>
-      <div class="loading">読み込み中…</div>
-    `;
-    const entry = idx?.minutes?.find(m => slugOf(m.file) === slug);
-    const path = entry ? `content/${entry.file}` : `content/minutes/${slug}.md`;
-    try {
-      const text = await getText(path);
-      app().innerHTML = `
-        <a href="#/minutes" class="back-link">← 一覧へ</a>
-        <div class="md-content">${marked.parse(text)}</div>
-      `;
-    } catch (e) {
-      app().innerHTML = `
-        <a href="#/minutes" class="back-link">← 一覧へ</a>
-        <div class="error">ファイルが見つかりませんでした：${esc(path)}</div>
-      `;
-    }
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <button class="btn btn-ghost btn-sm" id="edit-min">✏️ 編集</button>
+      </div>
+      <div class="md-content" id="min-body">${marked.parse(t)}</div>`;
+    document.getElementById('edit-min').onclick=()=>openMdEditor(
+      entry?entry.title:sl, fp, t,
+      nc=>{text=nc;document.getElementById('min-body').innerHTML=marked.parse(nc);}
+    );
+  };
+  render(text);
+}
+
+// ── Decisions ─────────────────────────────────────────
+async function renderDecisions(){
+  app().innerHTML='<div class="loading">読み込み中…</div>';
+  let text='';
+  try{text=await getFile('content/decisions.md');}catch{text='# 決定事項ログ\n\n<!-- 最新を上に追記 -->\n';}
+  const render=(t)=>{
+    app().innerHTML=`
+      <div class="page-heading"><h2>決定事項</h2><button class="btn btn-ghost btn-sm" id="edit-dec">✏️ 編集</button></div>
+      <div class="md-content" id="dec-body">${marked.parse(t)}</div>`;
+    document.getElementById('edit-dec').onclick=()=>openMdEditor(
+      '決定事項を編集','content/decisions.md',t,
+      nc=>{text=nc;document.getElementById('dec-body').innerHTML=marked.parse(nc);}
+    );
+  };
+  render(text);
+}
+
+// ── Blueprint ─────────────────────────────────────────
+async function renderBlueprint(){
+  app().innerHTML='<div class="loading">読み込み中…</div>';
+  let text='';
+  try{text=await getFile('content/blueprint.md');}catch{text='# ブループリント\n\n';}
+  const render=(t)=>{
+    app().innerHTML=`
+      <div class="page-heading"><h2>ブループリント</h2><button class="btn btn-ghost btn-sm" id="edit-bp">✏️ 編集</button></div>
+      <div class="md-content" id="bp-body">${marked.parse(t)}</div>`;
+    document.getElementById('edit-bp').onclick=()=>openMdEditor(
+      'ブループリントを編集','content/blueprint.md',t,
+      nc=>{text=nc;document.getElementById('bp-body').innerHTML=marked.parse(nc);}
+    );
+  };
+  render(text);
+}
+
+// ── Key Points ────────────────────────────────────────
+const TYPE_LABELS={insight:'💡 気づき',action:'✅ アクション',question:'❓ 疑問',risk:'⚠️ リスク'};
+
+function renderPoints(){
+  const reList=()=>{
+    const pts=getPoints();
+    if(pts.length===0) return '<p class="empty">まだポイントがありません。＋ボタンから追加してください。</p>';
+    return `<div class="points-list">${pts.map((p,i)=>`
+      <div class="point-card">
+        <span class="point-tag ${esc(p.type||'insight')}">${TYPE_LABELS[p.type]||'💡 気づき'}</span>
+        <div class="point-body">
+          <div class="point-text">${esc(p.text)}</div>
+          <div class="point-meta">${esc(p.date||'')}${p.source?' · '+esc(p.source):''}</div>
+        </div>
+        <div class="point-actions">
+          <button class="icon-btn" onclick="editPoint(${i})">✏️</button>
+          <button class="icon-btn" onclick="delPoint(${i})">🗑</button>
+        </div>
+      </div>`).join('')}</div>`;
+  };
+  app().innerHTML=`
+    <div class="page-heading">
+      <h2>ポイントまとめ</h2>
+      <button class="btn btn-ghost btn-sm" onclick="exportPoints()">⬇ MD出力</button>
+    </div>
+    <div class="row" style="margin-bottom:16px">
+      ${Object.entries(TYPE_LABELS).map(([k,v])=>`<span class="point-tag ${k}">${v}</span>`).join('')}
+    </div>
+    <div id="pts-list">${reList()}</div>`;
+  window._rePointsList=()=>{document.getElementById('pts-list').innerHTML=reList();};
+  addFab(()=>openPointModal(null));
+}
+
+function openPointModal(editIdx){
+  const existing=editIdx!==null?getPoints()[editIdx]:null;
+  openModal(editIdx!==null?'ポイントを編集':'ポイントを追加',
+    `<div class="form-group"><label class="form-label">種別</label>
+     <select class="form-select" id="pt-type">${Object.entries(TYPE_LABELS).map(([k,v])=>`<option value="${k}"${(existing?.type||'insight')===k?' selected':''}>${v}</option>`).join('')}</select></div>
+     <div class="form-group"><label class="form-label">内容</label><textarea class="form-textarea" id="pt-text" rows="4">${esc(existing?.text||'')}</textarea></div>
+     <div class="form-group"><label class="form-label">日付</label><input class="form-input" id="pt-date" type="date" value="${esc(existing?.date||today())}"></div>
+     <div class="form-group"><label class="form-label">出典・関連（任意）</label><input class="form-input" id="pt-src" placeholder="例: キックオフMTG" value="${esc(existing?.source||'')}"></div>`,
+    `${editIdx!==null?`<button class="btn btn-danger btn-sm" onclick="delPoint(${editIdx});closeModal()">削除</button>`:''}
+     <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._savePoint(${editIdx??-1})">保存</button>`);
+  window._savePoint=(idx)=>{
+    const text=document.getElementById('pt-text').value.trim();
+    if(!text){alert('内容を入力してください');return;}
+    const item={type:document.getElementById('pt-type').value,text,date:document.getElementById('pt-date').value,source:document.getElementById('pt-src').value.trim()};
+    const pts=getPoints();
+    if(idx>=0) pts[idx]=item; else pts.unshift(item);
+    savePoints(pts);
+    closeModal();
+    if(window._rePointsList) window._rePointsList();
+  };
+}
+
+window.editPoint=(i)=>openPointModal(i);
+window.delPoint=(i)=>{const p=getPoints();p.splice(i,1);savePoints(p);if(window._rePointsList)window._rePointsList();};
+window.exportPoints=()=>{
+  const lines=['# ポイントまとめ\n'];
+  for(const p of getPoints()){
+    lines.push(`## ${TYPE_LABELS[p.type]||'気づき'} (${p.date||''})`,p.text,p.source?`_出典: ${p.source}_`:'','');
+  }
+  dlText(lines.join('\n'),'points.md');
+};
+
+// ── Mind Map ─────────────────────────────────────────
+let mm={data:null,sel:null,drag:null,ds:null,ns:null,moved:false,raf:false};
+
+function renderIdeas(){
+  app().innerHTML=`
+    <div class="page-heading">
+      <h2>アイデアマップ</h2>
+      <div class="row">
+        <button class="btn btn-ghost btn-sm" onclick="mmAddToRoot()">＋ アイデア追加</button>
+        <button class="btn btn-ghost btn-sm" onclick="mmReset()">リセット</button>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">クリックで選択、ドラッグで移動。選択後にツールバーのボタンで操作。</p>
+    <div>
+      <div class="mm-wrap"><svg id="mm-svg" width="1600" height="900"></svg></div>
+      <div class="mm-toolbar" id="mm-tb">
+        <span class="mm-sel-label" id="mm-sel-lbl">ノードを選択してください</span>
+        <button class="btn btn-ghost btn-sm" id="mm-add-child" style="display:none" onclick="mmAddChild()">＋ 子追加</button>
+        <button class="btn btn-ghost btn-sm" id="mm-edit-btn" style="display:none" onclick="mmEdit()">✏️ 編集</button>
+        <button class="btn btn-danger btn-sm" id="mm-del-btn" style="display:none" onclick="mmDel()">🗑 削除</button>
+      </div>
+    </div>`;
+  mm.data=getMM();
+  mm.sel=null;
+  mmRender();
+  const svg=document.getElementById('mm-svg');
+  if(!svg) return;
+  svg.addEventListener('mousedown',mmMD);
+  svg.addEventListener('mousemove',mmMM);
+  svg.addEventListener('mouseup',mmMU);
+  svg.addEventListener('mouseleave',mmMU);
+  svg.addEventListener('click',mmClick);
+  svg.addEventListener('touchstart',mmTS,{passive:false});
+  svg.addEventListener('touchmove',mmTM,{passive:false});
+  svg.addEventListener('touchend',mmTE);
+  // Scroll to center
+  const w=document.querySelector('.mm-wrap');
+  if(w){w.scrollLeft=400;w.scrollTop=180;}
+}
+
+function mmRender(){
+  const svg=document.getElementById('mm-svg');
+  if(!svg||!mm.data) return;
+  const NS='http://www.w3.org/2000/svg';
+  svg.innerHTML='';
+  const {nodes}=mm.data;
+
+  // edges
+  for(const n of nodes){
+    if(!n.pid) continue;
+    const p=nodes.find(x=>x.id===n.pid);
+    if(!p) continue;
+    const path=document.createElementNS(NS,'path');
+    const mx=(p.x+n.x)/2;
+    path.setAttribute('d',`M ${p.x} ${p.y} C ${mx} ${p.y}, ${mx} ${n.y}, ${n.x} ${n.y}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke','rgba(139,92,246,0.3)');
+    path.setAttribute('stroke-width',n.pid==='root'?'2':'1.5');
+    svg.appendChild(path);
   }
 
-  async function renderDecisions() {
-    app().innerHTML = '<div class="loading">読み込み中…</div>';
-    try {
-      const text = await getText('content/decisions.md');
-      app().innerHTML = `
-        <div class="page-heading"><h2>決定事項</h2></div>
-        <div class="md-content">${marked.parse(text)}</div>
-      `;
-    } catch (e) {
-      app().innerHTML = `
-        <div class="page-heading"><h2>決定事項</h2></div>
-        <div class="error">${esc(e.message)}</div>
-      `;
-    }
+  // nodes
+  for(const n of nodes) mmDrawNode(svg,n,NS);
+
+  // update toolbar
+  mmUpdateToolbar();
+}
+
+function mmNodeW(text){return Math.max(text.length*11+28,80);}
+
+function mmDrawNode(svg,n,NS){
+  const isRoot=n.id==='root';
+  const isSel=n.id===mm.sel;
+  const w=mmNodeW(n.text), h=isRoot?44:34;
+  const g=document.createElementNS(NS,'g');
+  g.setAttribute('data-id',n.id);
+  g.setAttribute('transform',`translate(${n.x},${n.y})`);
+  g.style.cursor='grab';
+
+  const rect=document.createElementNS(NS,'rect');
+  rect.setAttribute('x',-w/2); rect.setAttribute('y',-h/2);
+  rect.setAttribute('width',w); rect.setAttribute('height',h);
+  rect.setAttribute('rx',isRoot?'12':'8');
+  rect.setAttribute('fill',isRoot?'rgba(109,40,217,0.75)':'rgba(44,35,68,0.95)');
+  rect.setAttribute('stroke',isSel?'#a78bfa':(isRoot?'rgba(139,92,246,.6)':'rgba(139,92,246,.25)'));
+  rect.setAttribute('stroke-width',isSel?'2.5':'1.5');
+  if(isSel) rect.setAttribute('filter','drop-shadow(0 0 6px rgba(139,92,246,.5))');
+
+  const text=document.createElementNS(NS,'text');
+  text.setAttribute('text-anchor','middle');
+  text.setAttribute('dominant-baseline','middle');
+  text.setAttribute('fill','#e9e4f5');
+  text.setAttribute('font-size',isRoot?'14':'13');
+  text.setAttribute('font-weight',isRoot?'700':'500');
+  text.setAttribute('font-family','-apple-system,"Hiragino Sans",sans-serif');
+  text.setAttribute('pointer-events','none');
+  text.textContent=n.text;
+
+  g.appendChild(rect);
+  g.appendChild(text);
+  svg.appendChild(g);
+}
+
+function mmUpdateToolbar(){
+  const lbl=document.getElementById('mm-sel-lbl');
+  const addBtn=document.getElementById('mm-add-child');
+  const editBtn=document.getElementById('mm-edit-btn');
+  const delBtn=document.getElementById('mm-del-btn');
+  if(!lbl) return;
+  if(!mm.sel){
+    lbl.innerHTML='ノードを選択してください';
+    [addBtn,editBtn,delBtn].forEach(b=>{if(b)b.style.display='none';});
+    return;
   }
+  const n=mm.data.nodes.find(x=>x.id===mm.sel);
+  if(!n) return;
+  lbl.innerHTML=`選択中: <span>${esc(n.text)}</span>`;
+  if(addBtn) addBtn.style.display='';
+  if(editBtn) editBtn.style.display='';
+  if(delBtn) delBtn.style.display=n.id==='root'?'none':'';
+}
 
-  async function renderBlueprint() {
-    app().innerHTML = '<div class="loading">読み込み中…</div>';
-    try {
-      const text = await getText('content/blueprint.md');
-      app().innerHTML = `
-        <div class="page-heading"><h2>ブループリント</h2></div>
-        <div class="md-content">${marked.parse(text)}</div>
-      `;
-    } catch (e) {
-      app().innerHTML = `
-        <div class="page-heading"><h2>ブループリント</h2></div>
-        <div class="error">${esc(e.message)}</div>
-      `;
-    }
-  }
+function svgPt(e,svg){
+  const p=svg.createSVGPoint();
+  p.x=e.clientX; p.y=e.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+function svgPtT(t,svg){
+  const p=svg.createSVGPoint();
+  p.x=t.clientX; p.y=t.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
 
-  function renderNotesList() {
-    const sorted = (idx?.notes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
-    const listHtml = sorted.length === 0
-      ? '<p class="empty">メモはまだありません。</p>'
-      : sorted.map(n =>
-          `<a href="#/notes/${esc(slugOf(n.file))}" class="list-item">
-             <span class="list-item-title">${esc(n.title)}</span>
-             <span class="list-item-date">${esc(n.date)}</span>
-           </a>`
-        ).join('');
+function mmMD(e){
+  const g=e.target.closest('[data-id]');
+  if(!g) return;
+  e.stopPropagation();
+  const id=g.getAttribute('data-id');
+  mm.sel=id; mm.drag=id; mm.moved=false;
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPt(e,svg);
+  mm.ds={x:pt.x,y:pt.y};
+  const n=mm.data.nodes.find(x=>x.id===id);
+  mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};
+  mmRender();
+}
+function mmMM(e){
+  if(!mm.drag) return;
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPt(e,svg);
+  const dx=pt.x-mm.ds.x, dy=pt.y-mm.ds.y;
+  if(Math.abs(dx)+Math.abs(dy)>4) mm.moved=true;
+  if(!mm.moved) return;
+  const n=mm.data.nodes.find(x=>x.id===mm.drag);
+  if(!n) return;
+  n.x=mm.ns.x+dx; n.y=mm.ns.y+dy;
+  if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}
+}
+function mmMU(){
+  if(mm.drag&&mm.moved) saveMM(mm.data);
+  mm.drag=null;
+}
+function mmClick(e){
+  if(!e.target.closest('[data-id]')&&!mm.moved){mm.sel=null;mmRender();}
+  mm.moved=false;
+}
+function mmTS(e){
+  const g=e.target.closest('[data-id]');
+  if(!g) return;
+  e.preventDefault();
+  const id=g.getAttribute('data-id');
+  mm.sel=id; mm.drag=id; mm.moved=false;
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPtT(e.touches[0],svg);
+  mm.ds={x:pt.x,y:pt.y};
+  const n=mm.data.nodes.find(x=>x.id===id);
+  mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};
+  mmRender();
+}
+function mmTM(e){
+  if(!mm.drag) return;
+  e.preventDefault();
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPtT(e.touches[0],svg);
+  const dx=pt.x-mm.ds.x, dy=pt.y-mm.ds.y;
+  if(Math.abs(dx)+Math.abs(dy)>4) mm.moved=true;
+  if(!mm.moved) return;
+  const n=mm.data.nodes.find(x=>x.id===mm.drag);
+  if(!n) return;
+  n.x=mm.ns.x+dx; n.y=mm.ns.y+dy;
+  if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}
+}
+function mmTE(){if(mm.drag&&mm.moved)saveMM(mm.data);mm.drag=null;}
 
-    app().innerHTML = `
-      <div class="page-heading"><h2>メモ・調査資料</h2></div>
-      <div class="item-list">${listHtml}</div>
-    `;
-  }
+function mmAddChild(){
+  const pid=mm.sel||'root';
+  const parent=mm.data.nodes.find(n=>n.id===pid);
+  if(!parent) return;
+  const kids=mm.data.nodes.filter(n=>n.pid===pid).length;
+  const id='n'+(mm.data.nextId++);
+  const side=kids%2===0?1:-1;
+  mm.data.nodes.push({id,text:'新しいアイデア',x:parent.x+(parent.id==='root'?200*side:180),y:parent.y+kids*70-35,pid});
+  mm.sel=id;
+  saveMM(mm.data);
+  mmRender();
+  mmEdit();
+}
+window.mmAddChild=mmAddChild;
+window.mmAddToRoot=()=>{mm.sel='root';mmAddChild();};
 
-  async function renderNote(slug) {
-    app().innerHTML = `
-      <a href="#/notes" class="back-link">← 一覧へ</a>
-      <div class="loading">読み込み中…</div>
-    `;
-    const entry = idx?.notes?.find(n => slugOf(n.file) === slug);
-    const path = entry ? `content/${entry.file}` : `content/notes/${slug}.md`;
-    try {
-      const text = await getText(path);
-      app().innerHTML = `
-        <a href="#/notes" class="back-link">← 一覧へ</a>
-        <div class="md-content">${marked.parse(text)}</div>
-      `;
-    } catch (e) {
-      app().innerHTML = `
-        <a href="#/notes" class="back-link">← 一覧へ</a>
-        <div class="error">ファイルが見つかりませんでした：${esc(path)}</div>
-      `;
-    }
-  }
+window.mmEdit=()=>{
+  const n=mm.data.nodes.find(x=>x.id===mm.sel);
+  if(!n) return;
+  openModal('ノードを編集',
+    `<div class="form-group"><label class="form-label">テキスト</label><input class="form-input" id="mm-inp" value="${esc(n.text)}" style="font-size:16px"></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="
+       const v=document.getElementById('mm-inp').value.trim();
+       if(v){const nd=mm.data.nodes.find(x=>x.id===mm.sel);if(nd)nd.text=v;saveMM(mm.data);closeModal();mmRender();}
+     ">保存</button>`);
+  setTimeout(()=>{const i=document.getElementById('mm-inp');if(i){i.focus();i.select();}},50);
+};
+window.mmDel=()=>{
+  if(!mm.sel||mm.sel==='root') return;
+  const del=new Set();
+  const q=[mm.sel];
+  while(q.length){const c=q.shift();del.add(c);mm.data.nodes.filter(n=>n.pid===c).forEach(n=>q.push(n.id));}
+  mm.data.nodes=mm.data.nodes.filter(n=>!del.has(n.id));
+  mm.sel=null;
+  saveMM(mm.data);
+  mmRender();
+};
+window.mmReset=()=>{
+  if(!confirm('マインドマップをリセットしますか？')) return;
+  LS.del('mm');
+  mm.data=getMM();mm.sel=null;
+  mmRender();
+};
 
-  function renderLinks() {
-    if (!config) { app().innerHTML = '<div class="loading">読み込み中…</div>'; return; }
-    const links = config.links || [];
-    const html = links.length === 0
-      ? '<p class="empty">リンクはまだありません。config.json の links に追加してください。</p>'
-      : links.map(l =>
-          `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card">
-             <span class="link-label">${esc(l.label)}</span>
-             <span class="link-arrow">↗</span>
-           </a>`
-        ).join('');
+// ── Notes ─────────────────────────────────────────────
+function renderNotesList(){
+  const items=(getIdx().notes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const list=items.length===0?'<p class="empty">メモはまだありません。</p>'
+    :items.map(n=>`<a href="#/notes/${esc(slug(n.file))}" class="list-item"><span class="list-item-title">${esc(n.title)}</span><span class="list-item-date">${esc(n.date)}</span></a>`).join('');
+  app().innerHTML=`<div class="page-heading"><h2>メモ・調査資料</h2></div><div class="item-list">${list}</div>`;
+}
 
-    app().innerHTML = `
-      <div class="page-heading"><h2>リンク集</h2></div>
-      <div class="links-list">${html}</div>
-    `;
-  }
+async function renderNote(sl){
+  app().innerHTML=`<a href="#/notes" class="back-link">← 一覧へ</a><div class="loading">読み込み中…</div>`;
+  const entry=(getIdx().notes||[]).find(n=>slug(n.file)===sl);
+  const fp=entry?`content/${entry.file}`:`content/notes/${sl}.md`;
+  let text='';
+  try{text=await getFile(fp);}
+  catch(e){app().innerHTML=`<a href="#/notes" class="back-link">← 一覧へ</a><div class="error">ファイルが見つかりませんでした: ${esc(fp)}</div>`;return;}
+  app().innerHTML=`
+    <a href="#/notes" class="back-link">← 一覧へ</a>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-ghost btn-sm" id="edit-note">✏️ 編集</button></div>
+    <div class="md-content" id="note-body">${marked.parse(text)}</div>`;
+  document.getElementById('edit-note').onclick=()=>openMdEditor(
+    entry?.title||sl,fp,text,
+    nc=>{text=nc;document.getElementById('note-body').innerHTML=marked.parse(nc);}
+  );
+}
 
-  // ── Boot ──
-  init();
+// ── Links ─────────────────────────────────────────────
+function renderLinks(){
+  const links=getCfg().links||[];
+  const html=links.length===0?'<p class="empty">config.json の links に追加してください。</p>'
+    :links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card"><span class="link-label">${esc(l.label)}</span><span class="link-arrow">↗</span></a>`).join('');
+  app().innerHTML=`<div class="page-heading"><h2>リンク集</h2></div><div class="links-list">${html}</div>`;
+}
+
+// ── FAB helper ────────────────────────────────────────
+function addFab(onClick){
+  const btn=document.createElement('button');
+  btn.className='fab';btn.innerHTML='+';btn.onclick=onClick;
+  app().appendChild(btn);
+}
+
+// ── Boot ──────────────────────────────────────────────
+init();
 </script>
 </body>
 </html>
