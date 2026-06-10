@@ -1,0 +1,15 @@
+{
+  "projectName": "天神橋筋ホステルプロジェクト",
+  "tagline": "商店街の空き店舗を学生が再生し、地域とつながる体験型ホステルをつくる",
+  "phases": [
+    { "name": "Phase 1: 構想・アイデア出し", "status": "active" },
+    { "name": "Phase 2: 物件・市場調査", "status": "todo" },
+    { "name": "Phase 3: 資金調達（補助金・クラファン）", "status": "todo" },
+    { "name": "Phase 4: リノベ・開業準備", "status": "todo" },
+    { "name": "Phase 5: 開業・運営", "status": "todo" }
+  ],
+  "links": [
+    { "label": "GitHub リポジトリ", "url": "https://github.com/yukiominato/tenjinbashi-hostel-hub" },
+    { "label": "大阪市 空き店舗活用支援（要調査）", "url": "https://www.city.osaka.lg.jp/" }
+  ]
+}

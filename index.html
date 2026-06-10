@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">プロジェクトダッシュボード</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #13111c;
+      --surface: #1c1828;
+      --surface2: #231e33;
+      --accent: #8b5cf6;
+      --accent-light: #a78bfa;
+      --accent-dim: rgba(139, 92, 246, 0.15);
+      --text: #e9e4f5;
+      --text-muted: #9d94b8;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-accent: rgba(139, 92, 246, 0.35);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 52px;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-light);
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    nav {
+      display: flex;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    nav::-webkit-scrollbar { display: none; }
+
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+    nav a:hover { color: var(--text); background: var(--accent-dim); }
+    nav a.active { color: var(--accent-light); background: var(--accent-dim); }
+
+    /* ── Main ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 28px 16px 64px;
+    }
+
+    /* ── Home: project heading ── */
+    .project-heading { margin-bottom: 28px; }
+    .project-heading h1 {
+      font-size: clamp(18px, 5vw, 24px);
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    .project-heading .tagline {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── Phase progress bar ── */
+    .phase-section { margin-bottom: 32px; }
+    .phase-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .phase-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .phase-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .phase-pill.done {
+      background: rgba(139, 92, 246, 0.25);
+      color: var(--accent-light);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+    .phase-pill.active {
+      background: rgba(139, 92, 246, 0.12);
+      color: var(--accent-light);
+      border: 1px solid var(--accent);
+      animation: pill-glow 2.4s ease-in-out infinite;
+    }
+    .phase-pill.todo {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    @keyframes pill-glow {
+      0%, 100% { box-shadow: 0 0 6px rgba(139, 92, 246, 0.25); }
+      50%       { box-shadow: 0 0 16px rgba(139, 92, 246, 0.55), 0 0 28px rgba(139, 92, 246, 0.2); }
+    }
+
+    /* ── Card grid ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 480px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 720px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+    .card:hover {
+      border-color: var(--border-accent);
+      background: var(--surface2);
+      transform: translateY(-1px);
+    }
+    .card:active { transform: translateY(0); }
+
+    .card-icon { font-size: 22px; margin-bottom: 10px; }
+    .card-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .card-preview { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .card-meta { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+    /* ── Page heading ── */
+    .page-heading { margin-bottom: 24px; }
+    .page-heading h2 { font-size: 20px; font-weight: 800; }
+
+    /* ── Back link ── */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent-light);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      min-height: 44px;
+      padding: 8px 0;
+      margin-bottom: 16px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── List ── */
+    .item-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .list-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 44px;
+      transition: border-color 0.15s, background 0.15s;
+      gap: 12px;
+    }
+    .list-item:hover { border-color: var(--border-accent); background: var(--surface2); }
+
+    .list-item-title { font-size: 14px; font-weight: 500; }
+    .list-item-date { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+    /* ── Markdown ── */
+    .md-content {
+      line-height: 1.85;
+      font-size: 15px;
+    }
+
+    .md-content h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 0 0 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .md-content h2 {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 28px 0 12px;
+      padding-left: 12px;
+      border-left: 3px solid var(--accent);
+      color: var(--accent-light);
+    }
+    .md-content h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 20px 0 8px;
+      padding-left: 10px;
+      border-left: 2px solid rgba(139, 92, 246, 0.4);
+      color: var(--text);
+    }
+    .md-content p { margin: 10px 0; }
+    .md-content ul, .md-content ol { padding-left: 24px; margin: 8px 0; }
+    .md-content li { margin: 4px 0; }
+    .md-content strong { color: var(--text); font-weight: 700; }
+    .md-content em { color: var(--text-muted); }
+    .md-content a { color: var(--accent-light); }
+    .md-content code {
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+    .md-content pre {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .md-content pre code { background: none; padding: 0; font-size: 13px; }
+    .md-content blockquote {
+      border-left: 3px solid var(--accent);
+      padding-left: 16px;
+      margin: 12px 0;
+      color: var(--text-muted);
+    }
+    .md-content hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+    }
+    .md-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    .md-content th, .md-content td {
+      text-align: left;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+    }
+    .md-content th { background: var(--surface2); color: var(--accent-light); }
+
+    /* ── Links page ── */
+    .links-list { display: flex; flex-direction: column; gap: 8px; }
+    .link-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+      gap: 12px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .link-card:hover { border-color: var(--border-accent); background: var(--surface2); }
+    .link-label { font-size: 14px; font-weight: 500; }
+    .link-arrow { color: var(--accent-light); font-size: 16px; flex-shrink: 0; }
+
+    /* ── Utility ── */
+    .loading {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 56px 0;
+      font-size: 14px;
+    }
+    .error {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .empty {
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 24px 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="#/" class="logo" id="header-logo">ダッシュボード</a>
+    <nav id="main-nav">
+      <a href="#/minutes">議事録</a>
+      <a href="#/decisions">決定事項</a>
+      <a href="#/blueprint">設計</a>
+      <a href="#/notes">メモ</a>
+      <a href="#/links">リンク</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app">
+  <div class="loading">読み込み中…</div>
+</main>
+
+<script>
+  // ── State ──
+  let config = null;
+  let idx = null;
+
+  // ── Fetch helpers ──
+  async function getJSON(path) {
+    const r = await fetch(path);
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`);
+    return r.json();
+  }
+  async function getText(path) {
+    const r = await fetch(path);
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`);
+    return r.text();
+  }
+
+  // ── Utils ──
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function slugOf(file) {
+    return file.replace(/^.*\//, '').replace(/\.md$/, '');
+  }
+
+  function app() { return document.getElementById('app'); }
+
+  // ── Router ──
+  async function init() {
+    try {
+      [config, idx] = await Promise.all([
+        getJSON('config.json'),
+        getJSON('content/index.json'),
+      ]);
+      document.getElementById('header-logo').textContent = config.projectName;
+      document.getElementById('page-title').textContent = config.projectName;
+    } catch (e) {
+      console.error('初期化エラー:', e);
+    }
+    window.addEventListener('hashchange', route);
+    route();
+  }
+
+  function route() {
+    const path = (location.hash || '#/').slice(1) || '/';
+    syncNav(path);
+    if (path === '/')                          return renderHome();
+    if (path === '/minutes')                   return renderMinutesList();
+    if (path.startsWith('/minutes/'))          return renderMinute(path.slice('/minutes/'.length));
+    if (path === '/decisions')                 return renderDecisions();
+    if (path === '/blueprint')                 return renderBlueprint();
+    if (path === '/notes')                     return renderNotesList();
+    if (path.startsWith('/notes/'))            return renderNote(path.slice('/notes/'.length));
+    if (path === '/links')                     return renderLinks();
+    renderHome();
+  }
+
+  function syncNav(path) {
+    document.querySelectorAll('#main-nav a').forEach(a => {
+      const href = a.getAttribute('href').slice(1);
+      const isActive = path === href || (href !== '/' && path.startsWith(href + '/'));
+      a.classList.toggle('active', isActive);
+    });
+  }
+
+  // ── Views ──
+
+  function renderHome() {
+    if (!config) { app().innerHTML = '<div class="loading">読み込み中…</div>'; return; }
+
+    const phasePills = (config.phases || []).map(p =>
+      `<span class="phase-pill ${esc(p.status)}">${esc(p.name)}</span>`
+    ).join('');
+
+    const sortedMinutes = (idx?.minutes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+    const latest = sortedMinutes[0];
+
+    const latestCard = latest
+      ? `<a href="#/minutes/${esc(slugOf(latest.file))}" class="card">
+           <div class="card-icon">📋</div>
+           <div class="card-title">最新の議事録</div>
+           <div class="card-preview">${esc(latest.title)}</div>
+           <div class="card-meta">${esc(latest.date)}</div>
+         </a>`
+      : `<a href="#/minutes" class="card">
+           <div class="card-icon">📋</div>
+           <div class="card-title">議事録</div>
+           <div class="card-preview">まだ議事録がありません</div>
+         </a>`;
+
+    const noteCount = idx?.notes?.length || 0;
+    const linkCount = config.links?.length || 0;
+
+    app().innerHTML = `
+      <div class="project-heading">
+        <h1>${esc(config.projectName)}</h1>
+        <p class="tagline">${esc(config.tagline)}</p>
+      </div>
+
+      <div class="phase-section">
+        <div class="phase-label">フェーズ進捗</div>
+        <div class="phase-bar">${phasePills}</div>
+      </div>
+
+      <div class="card-grid">
+        ${latestCard}
+        <a href="#/decisions" class="card">
+          <div class="card-icon">✅</div>
+          <div class="card-title">決定事項</div>
+          <div class="card-preview">重要な決定の追記式ログ</div>
+        </a>
+        <a href="#/blueprint" class="card">
+          <div class="card-icon">📐</div>
+          <div class="card-title">ブループリント</div>
+          <div class="card-preview">全体設計・コンセプトシート</div>
+        </a>
+        <a href="#/notes" class="card">
+          <div class="card-icon">📝</div>
+          <div class="card-title">メモ・調査資料</div>
+          <div class="card-preview">${noteCount}件のメモ</div>
+        </a>
+        <a href="#/links" class="card">
+          <div class="card-icon">🔗</div>
+          <div class="card-title">リンク集</div>
+          <div class="card-preview">${linkCount}件のリソース</div>
+        </a>
+      </div>
+    `;
+  }
+
+  function renderMinutesList() {
+    const sorted = (idx?.minutes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+    const listHtml = sorted.length === 0
+      ? '<p class="empty">議事録はまだありません。</p>'
+      : sorted.map(m =>
+          `<a href="#/minutes/${esc(slugOf(m.file))}" class="list-item">
+             <span class="list-item-title">${esc(m.title)}</span>
+             <span class="list-item-date">${esc(m.date)}</span>
+           </a>`
+        ).join('');
+
+    app().innerHTML = `
+      <div class="page-heading"><h2>議事録</h2></div>
+      <div class="item-list">${listHtml}</div>
+    `;
+  }
+
+  async function renderMinute(slug) {
+    app().innerHTML = `
+      <a href="#/minutes" class="back-link">← 一覧へ</a>
+      <div class="loading">読み込み中…</div>
+    `;
+    const entry = idx?.minutes?.find(m => slugOf(m.file) === slug);
+    const path = entry ? `content/${entry.file}` : `content/minutes/${slug}.md`;
+    try {
+      const text = await getText(path);
+      app().innerHTML = `
+        <a href="#/minutes" class="back-link">← 一覧へ</a>
+        <div class="md-content">${marked.parse(text)}</div>
+      `;
+    } catch (e) {
+      app().innerHTML = `
+        <a href="#/minutes" class="back-link">← 一覧へ</a>
+        <div class="error">ファイルが見つかりませんでした：${esc(path)}</div>
+      `;
+    }
+  }
+
+  async function renderDecisions() {
+    app().innerHTML = '<div class="loading">読み込み中…</div>';
+    try {
+      const text = await getText('content/decisions.md');
+      app().innerHTML = `
+        <div class="page-heading"><h2>決定事項</h2></div>
+        <div class="md-content">${marked.parse(text)}</div>
+      `;
+    } catch (e) {
+      app().innerHTML = `
+        <div class="page-heading"><h2>決定事項</h2></div>
+        <div class="error">${esc(e.message)}</div>
+      `;
+    }
+  }
+
+  async function renderBlueprint() {
+    app().innerHTML = '<div class="loading">読み込み中…</div>';
+    try {
+      const text = await getText('content/blueprint.md');
+      app().innerHTML = `
+        <div class="page-heading"><h2>ブループリント</h2></div>
+        <div class="md-content">${marked.parse(text)}</div>
+      `;
+    } catch (e) {
+      app().innerHTML = `
+        <div class="page-heading"><h2>ブループリント</h2></div>
+        <div class="error">${esc(e.message)}</div>
+      `;
+    }
+  }
+
+  function renderNotesList() {
+    const sorted = (idx?.notes || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+    const listHtml = sorted.length === 0
+      ? '<p class="empty">メモはまだありません。</p>'
+      : sorted.map(n =>
+          `<a href="#/notes/${esc(slugOf(n.file))}" class="list-item">
+             <span class="list-item-title">${esc(n.title)}</span>
+             <span class="list-item-date">${esc(n.date)}</span>
+           </a>`
+        ).join('');
+
+    app().innerHTML = `
+      <div class="page-heading"><h2>メモ・調査資料</h2></div>
+      <div class="item-list">${listHtml}</div>
+    `;
+  }
+
+  async function renderNote(slug) {
+    app().innerHTML = `
+      <a href="#/notes" class="back-link">← 一覧へ</a>
+      <div class="loading">読み込み中…</div>
+    `;
+    const entry = idx?.notes?.find(n => slugOf(n.file) === slug);
+    const path = entry ? `content/${entry.file}` : `content/notes/${slug}.md`;
+    try {
+      const text = await getText(path);
+      app().innerHTML = `
+        <a href="#/notes" class="back-link">← 一覧へ</a>
+        <div class="md-content">${marked.parse(text)}</div>
+      `;
+    } catch (e) {
+      app().innerHTML = `
+        <a href="#/notes" class="back-link">← 一覧へ</a>
+        <div class="error">ファイルが見つかりませんでした：${esc(path)}</div>
+      `;
+    }
+  }
+
+  function renderLinks() {
+    if (!config) { app().innerHTML = '<div class="loading">読み込み中…</div>'; return; }
+    const links = config.links || [];
+    const html = links.length === 0
+      ? '<p class="empty">リンクはまだありません。config.json の links に追加してください。</p>'
+      : links.map(l =>
+          `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card">
+             <span class="link-label">${esc(l.label)}</span>
+             <span class="link-arrow">↗</span>
+           </a>`
+        ).join('');
+
+    app().innerHTML = `
+      <div class="page-heading"><h2>リンク集</h2></div>
+      <div class="links-list">${html}</div>
+    `;
+  }
+
+  // ── Boot ──
+  init();
+</script>
+</body>
+</html>
