@@ -33,16 +33,44 @@
     .project-heading h1{font-size:clamp(18px,5vw,24px);font-weight:800;line-height:1.3;margin-bottom:6px;}
     .tagline{font-size:14px;color:var(--text-muted);line-height:1.6;}
 
-    /* ── phase bar ── */
+    /* ── phase section ── */
     .phase-section{margin-bottom:24px;}
     .sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
     .sec-label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);font-weight:600;}
-    .phase-bar{display:flex;flex-wrap:wrap;gap:8px;}
-    .phase-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;line-height:1.3;}
-    .phase-pill.done{background:rgba(139,92,246,.25);color:var(--accent-light);border:1px solid rgba(139,92,246,.4);}
-    .phase-pill.active{background:rgba(139,92,246,.12);color:var(--accent-light);border:1px solid var(--accent);animation:pill-glow 2.4s ease-in-out infinite;}
-    .phase-pill.todo{background:transparent;color:var(--text-muted);border:1px solid var(--border);}
-    @keyframes pill-glow{0%,100%{box-shadow:0 0 6px rgba(139,92,246,.25);}50%{box-shadow:0 0 18px rgba(139,92,246,.6),0 0 30px rgba(139,92,246,.2);}}
+
+    /* ── sugoroku ── */
+    .sugoroku{overflow-x:auto;scrollbar-width:none;padding:4px 0 2px;-webkit-overflow-scrolling:touch;}
+    .sugoroku::-webkit-scrollbar{display:none;}
+    .sg-bubbles,.sg-names{display:flex;align-items:center;min-width:max-content;}
+    .sg-bub{flex-shrink:0;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;transition:all .2s;}
+    .sg-bub.done{background:rgba(139,92,246,.28);border:2px solid rgba(139,92,246,.55);color:var(--accent-light);}
+    .sg-bub.active{background:rgba(139,92,246,.12);border:2px solid var(--accent);color:var(--accent-light);animation:sg-glow 2s ease-in-out infinite;}
+    .sg-bub.todo{background:transparent;border:2px dashed rgba(255,255,255,.12);color:var(--text-muted);}
+    @keyframes sg-glow{0%,100%{box-shadow:0 0 0 0 rgba(139,92,246,.5);}50%{box-shadow:0 0 14px 3px rgba(139,92,246,.35);}}
+    .sg-wire{height:2px;flex-shrink:0;align-self:center;}
+    .sg-wire.done{background:rgba(139,92,246,.5);}
+    .sg-wire.active{background:linear-gradient(to right,rgba(139,92,246,.45),rgba(255,255,255,.07));}
+    .sg-wire.todo{background:repeating-linear-gradient(to right,rgba(255,255,255,.12) 0,rgba(255,255,255,.12) 4px,transparent 4px,transparent 10px);}
+    .sg-nm{flex-shrink:0;font-size:10px;text-align:center;line-height:1.3;overflow:hidden;}
+    .sg-nm.done{color:var(--text-muted);}
+    .sg-nm.active{color:var(--accent-light);font-weight:700;}
+    .sg-nm.todo{color:rgba(157,148,184,.4);}
+    .sg-sp{flex-shrink:0;}
+
+    /* ── timeline (minutes) ── */
+    .quick-add{background:var(--surface);border:1px solid var(--border-acc);border-radius:12px;padding:16px 18px;margin-bottom:28px;}
+    .quick-add-title{font-size:13px;font-weight:700;color:var(--accent-light);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+    .qa-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+    .qa-row .form-input{flex:1;min-width:140px;}
+    .qa-row .form-input-date{width:140px;flex-shrink:0;}
+    .tl-list{display:flex;flex-direction:column;}
+    .tl-item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;transition:background .12s;border-radius:6px;}
+    .tl-item:last-child{border-bottom:none;}
+    .tl-item:hover{background:var(--surface2);}
+    .tl-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-left:4px;}
+    .tl-date{font-size:12px;color:var(--text-muted);white-space:nowrap;min-width:76px;}
+    .tl-title{flex:1;font-size:14px;font-weight:500;}
+    .tl-arr{color:var(--accent-light);font-size:14px;flex-shrink:0;}
 
     /* ── today section ── */
     .today-section{background:var(--surface);border:1px solid var(--border-acc);border-radius:12px;padding:16px 18px;margin-bottom:24px;}
@@ -379,6 +407,28 @@ function route(){
   renderHome();
 }
 
+// ═══ Sugoroku helper ════════════════════════════════════
+function shortName(s){
+  return s.replace(/^Phase\s*\d+[:\s·–\-]*/i,'').trim().slice(0,11)||(s.slice(0,11));
+}
+
+function sugorokuHTML(phases,compact){
+  const bsz=compact?38:50, wsz=compact?24:36;
+  const fs=compact?14:18;
+  const bubs=[], names=[];
+  phases.forEach((p,i)=>{
+    const isDone=p.status==='done', isAct=p.status==='active';
+    bubs.push(`<div class="sg-bub ${p.status}" style="width:${bsz}px;height:${bsz}px;font-size:${fs}px;border-radius:${compact?8:10}px">${isDone?'✓':i+1}</div>`);
+    names.push(`<div class="sg-nm ${p.status}" style="width:${bsz}px;padding-top:5px">${esc(shortName(p.name))}</div>`);
+    if(i<phases.length-1){
+      const wc=isDone?'done':isAct?'active':'todo';
+      bubs.push(`<div class="sg-wire ${wc}" style="width:${wsz}px"></div>`);
+      names.push(`<div class="sg-sp" style="width:${wsz}px"></div>`);
+    }
+  });
+  return `<div class="sugoroku"><div class="sg-bubbles">${bubs.join('')}</div><div class="sg-names">${names.join('')}</div></div>`;
+}
+
 // ═══ Home ═══════════════════════════════════════════════
 function getTodayTasks(){
   const rm=getRoadmap();
@@ -422,7 +472,7 @@ function renderHome(){
         <span class="sec-label">フェーズ進捗</span>
         <button class="btn btn-ghost btn-sm" onclick="openPhaseEditor()">✏️ 編集</button>
       </div>
-      <div class="phase-bar">${phases}</div>
+      ${sugorokuHTML(cfg.phases||[],true)}
     </div>
     <div class="today-section">
       <div class="sec-header" style="margin-bottom:8px">
@@ -546,6 +596,9 @@ function renderRoadmap(){
     <div class="page-heading">
       <h2>ロードマップ</h2>
       <button class="btn btn-ghost btn-sm" onclick="openAddPhase()">＋ フェーズ追加</button>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:20px">
+      ${sugorokuHTML(rm.phases,false)}
     </div>
     <div class="rm-focus">
       <div class="rm-focus-title">⚡ 進行中のタスク</div>
@@ -736,32 +789,63 @@ window.clearCanvas=function(){
 // ═══ Minutes list ════════════════════════════════════════
 function renderMinutesList(){
   const items=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
-  const list=items.length===0
-    ?'<p class="empty">まだ議事録がありません。＋ボタンから追加してください。</p>'
-    :items.map(m=>`<a href="#/minutes/${esc(slug(m.file))}" class="list-item"><span class="list-item-title">${esc(m.title)}</span><span class="list-item-date">${esc(m.date)}</span></a>`).join('');
-  app().innerHTML=`<div class="page-heading"><h2>議事録</h2></div><div class="item-list">${list}</div>`;
-  addFab(openAddMinute);
+  const tlHtml=items.length===0
+    ?'<p class="empty" style="padding:20px 4px">まだ記録がありません。上のフォームから追加しましょう。</p>'
+    :items.map(m=>`
+      <a href="#/minutes/${esc(slug(m.file))}" class="tl-item">
+        <div class="tl-dot"></div>
+        <span class="tl-date">${esc(m.date)}</span>
+        <span class="tl-title">${esc(m.title)}</span>
+        <span class="tl-arr">→</span>
+      </a>`).join('');
+
+  app().innerHTML=`
+    <div class="page-heading"><h2>議事録</h2></div>
+    <div class="quick-add" id="qa-box">
+      <div class="quick-add-title">＋ 記録を追加</div>
+      <div class="qa-row">
+        <input class="form-input" id="qa-title" placeholder="タイトル（例: ブレスト、調査メモ）">
+        <input class="form-input form-input-date" id="qa-date" type="date" value="${today()}">
+      </div>
+      <textarea class="form-textarea mono" id="qa-body" rows="7" style="margin-bottom:10px" placeholder="## 内容\n- アイデア\n- 決まったこと\n- 次のアクション"></textarea>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="saveQuickMinute()">追加する　→</button>
+      </div>
+    </div>
+    <div class="tl-list" id="tl-list">${tlHtml}</div>`;
 }
 
+window.saveQuickMinute=function(){
+  const t=document.getElementById('qa-title').value.trim();
+  const d=document.getElementById('qa-date').value.trim();
+  const c=document.getElementById('qa-body').value;
+  if(!t||!d){alert('タイトルと日付を入力してください');return;}
+  const s=d+'-'+t.replace(/[\s　]+/g,'-').replace(/[^\w぀-鿿-]/g,'').slice(0,30)||'note';
+  const file=`minutes/${s}.md`;
+  const fullContent=`# ${t}\n\n${c}`;
+  saveFile('content/'+file,fullContent);
+  const idx=getIdx();
+  idx.minutes=(idx.minutes||[]).filter(m=>slug(m.file)!==s);
+  idx.minutes.push({file,title:t,date:d});
+  saveIdx(idx);
+  // Reset form and re-render list only
+  document.getElementById('qa-title').value='';
+  document.getElementById('qa-body').value='';
+  document.getElementById('qa-date').value=today();
+  const items=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('tl-list').innerHTML=items.map(m=>`
+    <a href="#/minutes/${esc(slug(m.file))}" class="tl-item">
+      <div class="tl-dot"></div>
+      <span class="tl-date">${esc(m.date)}</span>
+      <span class="tl-title">${esc(m.title)}</span>
+      <span class="tl-arr">→</span>
+    </a>`).join('');
+  document.getElementById('qa-title').focus();
+};
+
 function openAddMinute(){
-  openModal('議事録を追加',
-    `<div class="form-group"><label class="form-label">タイトル</label><input class="form-input" id="mn-t" placeholder="例: 第2回 事業計画MTG"></div>
-     <div class="form-group"><label class="form-label">日付</label><input class="form-input" id="mn-d" type="date" value="${today()}"></div>
-     <div class="form-group"><label class="form-label">内容（Markdown）</label><textarea class="form-textarea mono" id="mn-c" rows="12" placeholder="# 議事録\n\n## 議題\n- "></textarea></div>`,
-    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="window._smin()">追加</button>`);
-  window._smin=()=>{
-    const t=document.getElementById('mn-t').value.trim();
-    const d=document.getElementById('mn-d').value.trim();
-    if(!t||!d){alert('タイトルと日付を入力してください');return;}
-    const s=d+'-'+t.replace(/[\s　]+/g,'-').replace(/[^\w　-鿿-]/g,'').slice(0,30);
-    const file=`minutes/${s||'note'}.md`;
-    saveFile('content/'+file,document.getElementById('mn-c').value);
-    const idx=getIdx();
-    idx.minutes=(idx.minutes||[]).filter(m=>slug(m.file)!==s);
-    idx.minutes.push({file,title:t,date:d});
-    saveIdx(idx);closeModal();renderMinutesList();
-  };
+  // Legacy - redirect to inline form
+  location.hash='#/minutes';
 }
 
 async function renderMinute(sl){
