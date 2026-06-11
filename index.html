@@ -727,10 +727,11 @@ async function gistPush() {
         body: JSON.stringify({ files: fileObj })
       });
     } else {
+      // public: true にして URL だけで誰でも閲覧可能にする
       r = await fetch('https://api.github.com/gists', {
         method: 'POST',
         headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'kigyou-dashboard', public: false, files: fileObj })
+        body: JSON.stringify({ description: 'kigyou-dashboard', public: true, files: fileObj })
       });
       if (r.ok) { const d = await r.json(); LS.set('gist_id', d.id); }
     }
@@ -742,10 +743,13 @@ async function gistPush() {
 
 async function gistPull(token) {
   setSyncBadge('syncing', '⟳ 読み込み中…');
-  let gid = LS.get('gist_id');
+  // URL パラメータ (?gist=ID) からも Gist ID を取得できる
+  const urlGid = new URLSearchParams(location.search).get('gist');
+  let gid = urlGid || LS.get('gist_id');
+  if (urlGid) LS.set('gist_id', urlGid);
   try {
-    if (!gid) {
-      // トークンに紐づく Gist を検索
+    if (!gid && token) {
+      // オーナー：自分の Gist を検索
       const r = await fetch('https://api.github.com/gists?per_page=100', {
         headers: { Authorization: `token ${token}` }
       });
@@ -756,9 +760,10 @@ async function gistPull(token) {
       gid = found.id;
       LS.set('gist_id', gid);
     }
-    const r = await fetch(`https://api.github.com/gists/${gid}`, {
-      headers: { Authorization: `token ${token}` }
-    });
+    if (!gid) { setSyncBadge('idle', ''); return false; }
+    // 公開 Gist はトークン不要で読める
+    const headers = token ? { Authorization: `token ${token}` } : {};
+    const r = await fetch(`https://api.github.com/gists/${gid}`, { headers });
     if (!r.ok) { setSyncBadge('error', '⚠ 同期エラー'); return false; }
     const data = await r.json();
     const raw = data.files[_GIST_FILE]?.content;
@@ -784,9 +789,10 @@ async function init(){
   try{
     [_sCfg,_sIdx]=await Promise.all([fetchJSON('config.json'),fetchJSON('content/index.json')]);
   }catch(e){console.error(e);}
-  // Gist から最新データを取得（トークンがある場合）
+  // URL ?gist=ID または token があれば Gist から最新データを取得
   const token = LS.get('gh_token');
-  if (token) await gistPull(token);
+  const urlGid = new URLSearchParams(location.search).get('gist');
+  if (token || urlGid || LS.get('gist_id')) await gistPull(token);
   const cfg=getCfg();
   document.getElementById('header-logo').textContent=cfg.projectName||'ダッシュボード';
   document.getElementById('page-title').textContent=cfg.projectName||'ダッシュボード';
@@ -1015,7 +1021,17 @@ function openProjectEditor(){
        <input class="form-input" id="pe-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${esc(curToken)}">
        <p style="font-size:11px;color:var(--text-dim);margin-top:6px">github.com → Settings → Developer settings → Personal access tokens → <strong>Gist スコープのみ</strong>で作成</p>
      </div>
-     ${gistId?`<p style="font-size:11px;color:var(--text-dim)">Gist ID: <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:4px">${esc(gistId)}</code></p>`:''}`,
+     ${gistId?`
+     <div style="margin-top:8px">
+       <label class="form-label">🔗 共有URL（このURLを渡すだけで誰でも閲覧可）</label>
+       <div style="display:flex;gap:6px;align-items:center">
+         <input class="form-input" id="pe-share-url" readonly value="${esc(location.origin+location.pathname+'?gist='+gistId)}" style="font-size:12px">
+         <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="
+           navigator.clipboard.writeText(document.getElementById('pe-share-url').value);
+           this.textContent='✓ コピー済み';setTimeout(()=>this.textContent='コピー',1500);
+         ">コピー</button>
+       </div>
+     </div>`:''}`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        const n=document.getElementById('pe-name').value.trim();
