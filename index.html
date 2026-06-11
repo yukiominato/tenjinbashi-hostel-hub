@@ -564,6 +564,18 @@
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .divider { height: 1px; background: var(--border); margin: 20px 0; }
 
+    /* ── Sync badge ──────────────────────────────────────── */
+    .sync-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 999px; border: 1px solid; white-space: nowrap;
+      transition: opacity .4s; flex-shrink: 0;
+    }
+    .sync-badge.idle    { display: none; }
+    .sync-badge.syncing { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.3); color: var(--primary); }
+    .sync-badge.synced  { background: rgba(34,197,94,.1);   border-color: rgba(34,197,94,.3);  color: #86efac; }
+    .sync-badge.error   { background: rgba(239,68,68,.1);   border-color: rgba(239,68,68,.3);  color: #fca5a5; }
+
     /* phase section (legacy, kept for roadmap) */
     .phase-section { margin-bottom: 24px; }
     .sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -575,6 +587,7 @@
 <header>
   <div class="header-inner">
     <a href="#/" class="logo" id="header-logo">起業プロジェクト</a>
+    <span class="sync-badge idle" id="sync-badge"></span>
     <nav id="main-nav">
       <a href="#/roadmap"   data-section="roadmap">ロードマップ</a>
       <a href="#/canvas"    data-section="canvas">キャンバス</a>
@@ -615,21 +628,21 @@ let _sCfg=null,_sIdx=null;
 
 // ═══ Data layer ═════════════════════════════════════════
 const getCfg  = () => LS.get('cfg')  ?? _sCfg ?? {};
-const saveCfg = (c) => LS.set('cfg',c);
+const saveCfg = (c) => { LS.set('cfg',c); scheduleSync(); };
 const getIdx  = () => LS.get('idx')  ?? _sIdx ?? {minutes:[],notes:[]};
-const saveIdx = (i) => LS.set('idx',i);
+const saveIdx = (i) => { LS.set('idx',i); scheduleSync(); };
 
 async function getFile(path){
   const s=LS.get('f:'+path);
   if(s!==null) return s;
   return await fetchText(path);
 }
-const saveFile=(p,c)=>LS.set('f:'+p,c);
+const saveFile=(p,c)=>{ LS.set('f:'+p,c); scheduleSync(); };
 
 const getPoints  = () => LS.get('pts') ?? [];
-const savePoints = (p) => LS.set('pts',p);
+const savePoints = (p) => { LS.set('pts',p); scheduleSync(); };
 const getCanvas  = () => LS.get('canvas') ?? {};
-const saveCanvas = (c) => LS.set('canvas',c);
+const saveCanvas = (c) => { LS.set('canvas',c); scheduleSync(); };
 
 function getRoadmap(){
   const s=LS.get('roadmap');
@@ -644,7 +657,7 @@ function getRoadmap(){
   }));
   return {nextId:10,phases};
 }
-const saveRoadmap=(r)=>LS.set('roadmap',r);
+const saveRoadmap=(r)=>{ LS.set('roadmap',r); scheduleSync(); };
 
 // ═══ Fetch ══════════════════════════════════════════════
 async function fetchJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(r.status+':'+p);return r.json();}
@@ -674,14 +687,109 @@ document.getElementById('modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('modal-overlay'))closeModal();
 });
 
+// ═══ Gist Sync ══════════════════════════════════════════
+const _GIST_FILE = 'kigyou-dashboard.json';
+let _syncTimer = null;
+
+function setSyncBadge(state, msg) {
+  const el = document.getElementById('sync-badge');
+  if (!el) return;
+  el.className = 'sync-badge ' + state;
+  el.textContent = msg;
+  if (state === 'synced') setTimeout(() => { el.className = 'sync-badge idle'; }, 3000);
+}
+
+function scheduleSync() {
+  if (!LS.get('gh_token')) return;
+  setSyncBadge('syncing', '⟳ 同期中…');
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(gistPush, 1800);
+}
+
+async function gistPush() {
+  const token = LS.get('gh_token');
+  if (!token) return;
+  const state = {
+    cfg: getCfg(), roadmap: getRoadmap(), canvas: getCanvas(),
+    pts: getPoints(), idx: getIdx(), mm: LS.get('mm'), files: {}
+  };
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('f:')) state.files[k] = localStorage.getItem(k);
+  }
+  const fileObj = { [_GIST_FILE]: { content: JSON.stringify(state) } };
+  let gid = LS.get('gist_id');
+  try {
+    let r;
+    if (gid) {
+      r = await fetch(`https://api.github.com/gists/${gid}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: fileObj })
+      });
+    } else {
+      r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: 'kigyou-dashboard', public: false, files: fileObj })
+      });
+      if (r.ok) { const d = await r.json(); LS.set('gist_id', d.id); }
+    }
+    setSyncBadge(r.ok ? 'synced' : 'error', r.ok ? '✓ 同期済み' : '⚠ 同期エラー');
+  } catch(e) {
+    setSyncBadge('error', '⚠ 同期エラー');
+  }
+}
+
+async function gistPull(token) {
+  setSyncBadge('syncing', '⟳ 読み込み中…');
+  let gid = LS.get('gist_id');
+  try {
+    if (!gid) {
+      // トークンに紐づく Gist を検索
+      const r = await fetch('https://api.github.com/gists?per_page=100', {
+        headers: { Authorization: `token ${token}` }
+      });
+      if (!r.ok) { setSyncBadge('error', '⚠ 認証エラー'); return false; }
+      const list = await r.json();
+      const found = list.find(g => g.files[_GIST_FILE]);
+      if (!found) { setSyncBadge('idle', ''); return false; }
+      gid = found.id;
+      LS.set('gist_id', gid);
+    }
+    const r = await fetch(`https://api.github.com/gists/${gid}`, {
+      headers: { Authorization: `token ${token}` }
+    });
+    if (!r.ok) { setSyncBadge('error', '⚠ 同期エラー'); return false; }
+    const data = await r.json();
+    const raw = data.files[_GIST_FILE]?.content;
+    if (!raw) { setSyncBadge('idle', ''); return false; }
+    const state = JSON.parse(raw);
+    if (state.cfg)     LS.set('cfg', state.cfg);
+    if (state.roadmap) LS.set('roadmap', state.roadmap);
+    if (state.canvas)  LS.set('canvas', state.canvas);
+    if (state.pts)     LS.set('pts', state.pts);
+    if (state.idx)     LS.set('idx', state.idx);
+    if (state.mm)      LS.set('mm', state.mm);
+    if (state.files)   { for (const [k,v] of Object.entries(state.files)) LS.set(k, v); }
+    setSyncBadge('synced', '✓ 同期済み');
+    return true;
+  } catch(e) {
+    setSyncBadge('error', '⚠ 同期エラー');
+    return false;
+  }
+}
+
 // ═══ Router ═════════════════════════════════════════════
 async function init(){
   try{
     [_sCfg,_sIdx]=await Promise.all([fetchJSON('config.json'),fetchJSON('content/index.json')]);
-    const cfg=getCfg();
-    document.getElementById('header-logo').textContent=cfg.projectName||'ダッシュボード';
-    document.getElementById('page-title').textContent=cfg.projectName||'ダッシュボード';
   }catch(e){console.error(e);}
+  // Gist から最新データを取得（トークンがある場合）
+  const token = LS.get('gh_token');
+  if (token) await gistPull(token);
+  const cfg=getCfg();
+  document.getElementById('header-logo').textContent=cfg.projectName||'ダッシュボード';
+  document.getElementById('page-title').textContent=cfg.projectName||'ダッシュボード';
   window.addEventListener('hashchange',route);
   route();
 }
@@ -895,10 +1003,19 @@ function openProjectEditor(){
   const cfg=getCfg();
   const con=cfg.concept||{};
   const bulletsStr=(con.bullets||[]).join('\n');
+  const curToken=LS.get('gh_token')||'';
+  const gistId=LS.get('gist_id')||'';
   openModal('プロジェクト設定',
     `<div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
      <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
-     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="4">${esc(bulletsStr)}</textarea></div>`,
+     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="4">${esc(bulletsStr)}</textarea></div>
+     <div class="divider"></div>
+     <div class="form-group">
+       <label class="form-label">🔗 デバイス間同期 — GitHub Token</label>
+       <input class="form-input" id="pe-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${esc(curToken)}">
+       <p style="font-size:11px;color:var(--text-dim);margin-top:6px">github.com → Settings → Developer settings → Personal access tokens → <strong>Gist スコープのみ</strong>で作成</p>
+     </div>
+     ${gistId?`<p style="font-size:11px;color:var(--text-dim)">Gist ID: <code style="font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:4px">${esc(gistId)}</code></p>`:''}`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        const n=document.getElementById('pe-name').value.trim();
@@ -906,8 +1023,12 @@ function openProjectEditor(){
        const headline=document.getElementById('pe-concept').value.trim();
        const bullets=document.getElementById('pe-bullets').value.split(/\n/).map(s=>s.trim()).filter(Boolean);
        const c={...getCfg(),projectName:n,concept:{headline,bullets}};
-       saveCfg(c);document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
+       saveCfg(c);
+       const tok=document.getElementById('pe-token').value.trim();
+       if(tok) LS.set('gh_token',tok); else LS.del('gh_token');
+       document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
        closeModal();renderHome();
+       if(tok && !LS.get('gist_id')) gistPull(tok).then(ok=>{ if(!ok) gistPush(); });
      ">保存</button>`);
 }
 
@@ -1357,7 +1478,7 @@ function getMM(){
     {id:'5',text:'顧客セグメント',x:1040,y:600,pid:'root'},
   ]};
 }
-const saveMM=(m)=>LS.set('mm',m);
+const saveMM=(m)=>{ LS.set('mm',m); scheduleSync(); };
 
 function renderIdeas(){
   app().innerHTML=`
