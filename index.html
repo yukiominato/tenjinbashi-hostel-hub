@@ -564,12 +564,14 @@
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .divider { height: 1px; background: var(--border); margin: 20px 0; }
     #toast {
-      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: #22c55e; color: #fff; font-size: 14px; font-weight: 600;
-      padding: 10px 22px; border-radius: 999px; box-shadow: 0 4px 20px rgba(0,0,0,.4);
-      opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9999; white-space: nowrap;
+      position: fixed; bottom: 20px; right: 16px;
+      background: rgba(34,197,94,.15); color: #86efac;
+      font-size: 12px; font-weight: 600;
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid rgba(34,197,94,.3);
+      opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; white-space: nowrap;
     }
-    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.show { opacity: 1; }
 
     /* ── Sync badge ──────────────────────────────────────── */
     .sync-badge {
@@ -691,13 +693,12 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow='';
 }
-let _toastTimer=null;
 function showToast(msg='保存しました ✓'){
   const el=document.getElementById('toast');
-  el.textContent=msg;
+  const now=new Date();
+  const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  el.textContent=msg+' '+hm;
   el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
 document.getElementById('modal-close-btn').onclick=closeModal;
 document.getElementById('modal-overlay').addEventListener('click',e=>{
