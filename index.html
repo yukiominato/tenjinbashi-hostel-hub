@@ -630,7 +630,7 @@
 // ═══ Storage ═══════════════════════════════════════════
 const LS={
   get(k){try{return JSON.parse(localStorage.getItem(k));}catch{return null;}},
-  set(k,v){localStorage.setItem(k,JSON.stringify(v));},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){showToast('⚠️ 保存失敗: '+e.message,true);return false;}},
   del(k){localStorage.removeItem(k);},
 };
 
@@ -668,7 +668,7 @@ function getRoadmap(){
   }));
   return {nextId:10,phases};
 }
-const saveRoadmap=(r)=>{ LS.set('roadmap',r); scheduleSync(); };
+const saveRoadmap=(r)=>{ const ok=LS.set('roadmap',r); scheduleSync(); return ok; };
 
 // ═══ Fetch ══════════════════════════════════════════════
 async function fetchJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(r.status+':'+p);return r.json();}
@@ -693,11 +693,17 @@ function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow='';
 }
-function showToast(msg='保存しました ✓'){
+function showToast(msg='保存しました ✓', isError=false){
   const el=document.getElementById('toast');
-  const now=new Date();
-  const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  el.textContent=msg+' '+hm;
+  if(isError){
+    el.style.background='rgba(239,68,68,.18)';el.style.color='#fca5a5';el.style.borderColor='rgba(239,68,68,.4)';
+    el.textContent=msg;
+  } else {
+    el.style.background='rgba(34,197,94,.15)';el.style.color='#86efac';el.style.borderColor='rgba(34,197,94,.3)';
+    const now=new Date();
+    const hm=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+    el.textContent=msg+' '+hm;
+  }
   el.classList.add('show');
 }
 document.getElementById('modal-close-btn').onclick=closeModal;
@@ -1249,14 +1255,18 @@ window.openEditTask=function(pid,tid){
 };
 
 window._saveTask=function(pid,tid){
-  const text=document.getElementById('tk-text').value.trim();
-  if(!text){alert('タスク内容を入力してください');return;}
-  const rm=getRoadmap();
-  const ph=rm.phases.find(p=>p.id===pid);
-  if(!ph) return;
-  const item={id:tid||'t'+(rm.nextId++),text,date:document.getElementById('tk-date').value,status:document.getElementById('tk-st').value};
-  if(tid) {const i=ph.tasks.findIndex(t=>t.id===tid);if(i>=0)ph.tasks[i]=item;} else ph.tasks.push(item);
-  saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
+  try{
+    const text=document.getElementById('tk-text').value.trim();
+    if(!text){alert('タスク内容を入力してください');return;}
+    const rm=getRoadmap();
+    const ph=rm.phases.find(p=>p.id===pid);
+    if(!ph){showToast('⚠️ フェーズが見つかりません',true);return;}
+    const item={id:tid||'t'+(rm.nextId=(rm.nextId||10)+1),text,date:document.getElementById('tk-date').value,status:document.getElementById('tk-st').value};
+    if(tid){const i=ph.tasks.findIndex(t=>t.id===tid);if(i>=0)ph.tasks[i]=item;}else ph.tasks.push(item);
+    const ok=saveRoadmap(rm);
+    closeModal();renderRoadmap();
+    if(ok!==false)showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}
 };
 
 window.openAddPhase=function(){
