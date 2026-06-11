@@ -271,8 +271,10 @@
     .today-task-check {
       width: 20px; height: 20px; border-radius: 50%; border: 2px solid;
       flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-      font-size: 10px;
+      font-size: 10px; background: none; cursor: pointer; padding: 0;
+      transition: transform .1s, opacity .1s;
     }
+    .today-task-check:hover { transform: scale(1.15); opacity: .8; }
     .today-task-check.todo  { border-color: var(--text-dim); color: transparent; }
     .today-task-check.doing { border-color: var(--primary); color: var(--primary); animation: dot-pulse 1.8s infinite; }
     .today-task-check.done  { border-color: rgba(34,197,94,.8); background: rgba(34,197,94,.15); color: #86efac; }
@@ -387,6 +389,24 @@
     .list-item:hover { border-color: var(--border-acc); background: var(--surface-2); transform: translateY(-1px); }
     .list-item-title { font-size: 14px; font-weight: 500; }
     .list-item-date { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+
+    /* ── Overdue ─────────────────────────────────────────── */
+    .rm-task-date.overdue { color: #f87171; font-weight: 700; }
+    .rm-task.overdue > .rm-task-text { color: #fca5a5; }
+
+    /* ── Points filter ───────────────────────────────────── */
+    .pt-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .pt-filter-btn { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; transition: all .15s; }
+    .pt-filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .pt-filter-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+    /* ── Link row (editable) ─────────────────────────────── */
+    .link-row { display: flex; align-items: center; gap: 8px; }
+    .link-row .link-card { flex: 1; }
+    .link-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    /* ── Canvas save indicator ───────────────────────────── */
+    #canvas-saved { font-size: 11px; color: var(--text-dim); transition: opacity .4s; }
 
     /* ── Markdown ────────────────────────────────────────── */
     .md-content { line-height: 1.85; font-size: 15px; }
@@ -964,8 +984,8 @@ function getTodayTasks(){
   const doing=[],todo=[];
   for(const ph of rm.phases){
     for(const t of ph.tasks){
-      if(t.status==='doing') doing.push({...t,pn:ph.name});
-      else if(t.status==='todo') todo.push({...t,pn:ph.name});
+      if(t.status==='doing') doing.push({...t,pn:ph.name,pid:ph.id});
+      else if(t.status==='todo') todo.push({...t,pn:ph.name,pid:ph.id});
     }
   }
   return [...doing,...todo.slice(0,Math.max(0,4-doing.length))].slice(0,4);
@@ -985,7 +1005,7 @@ function renderHome(){
     ?`<div class="today-empty">進行中のタスクはありません。<a href="#/roadmap" style="color:var(--primary)">ロードマップ</a>でタスクを追加しましょう。</div>`
     :todayTasks.map(t=>`
       <div class="today-task">
-        <div class="today-task-check ${esc(t.status)}">${t.status==='done'?'✓':t.status==='doing'?'⚡':''}</div>
+        <button class="today-task-check ${esc(t.status)}" onclick="homeCycleTask('${esc(t.pid)}','${esc(t.id)}')" title="タップでステータス変更">${t.status==='done'?'✓':t.status==='doing'?'⚡':''}</button>
         <span class="today-task-text${t.status==='done'?' done-txt':''}">${esc(t.text)}</span>
         <span class="today-task-phase">${esc(t.pn)}</span>
       </div>`).join('');
@@ -1068,7 +1088,15 @@ function openProjectEditor(){
      <div class="divider"></div>
      <div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
      <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
-     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="3">${esc(bulletsStr)}</textarea></div>`,
+     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="3">${esc(bulletsStr)}</textarea></div>
+     <div class="divider"></div>
+     <div class="form-group">
+       <label class="form-label">💾 データ管理</label>
+       <div style="display:flex;gap:8px;flex-wrap:wrap">
+         <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ バックアップ（JSON）</button>
+         <button class="btn btn-ghost btn-sm" onclick="importData()">⬆ バックアップから復元</button>
+       </div>
+     </div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="window._savePrj()">保存</button>`);
   window._savePrj=function(){try{
@@ -1211,11 +1239,12 @@ function renderRoadmap(){
 
 function rmTaskRow(pid,t){
   const icon=t.status==='done'?'✓':t.status==='doing'?'⚡':'';
+  const isOverdue=t.date&&t.date<today()&&t.status!=='done';
   return `
-    <div class="rm-task" id="rmt-${esc(t.id)}">
+    <div class="rm-task${isOverdue?' overdue':''}" id="rmt-${esc(t.id)}">
       <button class="rm-status-btn ${esc(t.status)}" onclick="rmCycleStatus('${esc(pid)}','${esc(t.id)}')" title="ステータス変更">${icon}</button>
       <span class="rm-task-text${t.status==='done'?' done':''}">${esc(t.text)}</span>
-      ${t.date?`<span class="rm-task-date">${esc(t.date)}</span>`:''}
+      ${t.date?`<span class="rm-task-date${isOverdue?' overdue':''}">${esc(t.date)}${isOverdue?' ⚠':''}️</span>`:''}
       <div class="rm-task-actions">
         <button class="icon-btn" onclick="openEditTask('${esc(pid)}','${esc(t.id)}')">✏️</button>
         <button class="icon-btn" onclick="rmDelTask('${esc(pid)}','${esc(t.id)}')">🗑</button>
@@ -1370,13 +1399,20 @@ function renderCanvas(){
         <button class="btn btn-ghost btn-sm" onclick="clearCanvas()">🗑 クリア</button>
       </div>
     </div>
-    <p class="canvas-note">各ブロックに直接入力できます。入力内容はブラウザに自動保存されます。</p>
+    <p class="canvas-note">各ブロックに直接入力できます。フォーカスを外すと自動保存されます。<span id="canvas-saved"></span></p>
     <div style="height:12px"></div>
     <div class="canvas-grid">${blocks}</div>`;
 }
 
 window.saveCanvasField=function(key,val){
-  try{const c=getCanvas();c[key]=val;saveCanvas(c);}
+  try{
+    const c=getCanvas();c[key]=val;saveCanvas(c);
+    const el=document.getElementById('canvas-saved');
+    if(el){
+      const now=new Date();
+      el.textContent=' — 自動保存済み '+now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+    }
+  }
   catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}
 };
 
@@ -1400,12 +1436,15 @@ function renderMinutesList(){
   const tlHtml=items.length===0
     ?'<p class="empty" style="padding:20px 4px">まだ記録がありません。上のフォームから追加しましょう。</p>'
     :items.map(m=>`
-      <a href="#/minutes/${esc(slug(m.file))}" class="tl-item">
-        <div class="tl-dot"></div>
-        <span class="tl-date">${esc(m.date)}</span>
-        <span class="tl-title">${esc(m.title)}</span>
-        <span class="tl-arr">→</span>
-      </a>`).join('');
+      <div style="display:flex;align-items:center;gap:6px">
+        <a href="#/minutes/${esc(slug(m.file))}" class="tl-item" style="flex:1">
+          <div class="tl-dot"></div>
+          <span class="tl-date">${esc(m.date)}</span>
+          <span class="tl-title">${esc(m.title)}</span>
+          <span class="tl-arr">→</span>
+        </a>
+        <button class="icon-btn" onclick="delMinute('${esc(slug(m.file))}')" title="削除">🗑</button>
+      </div>`).join('');
 
   app().innerHTML=`
     <div class="page-heading"><h2>議事録</h2></div>
@@ -1441,12 +1480,15 @@ window.saveQuickMinute=function(){try{
   document.getElementById('qa-date').value=today();
   const items=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('tl-list').innerHTML=items.map(m=>`
-    <a href="#/minutes/${esc(slug(m.file))}" class="tl-item">
-      <div class="tl-dot"></div>
-      <span class="tl-date">${esc(m.date)}</span>
-      <span class="tl-title">${esc(m.title)}</span>
-      <span class="tl-arr">→</span>
-    </a>`).join('');
+    <div style="display:flex;align-items:center;gap:6px">
+      <a href="#/minutes/${esc(slug(m.file))}" class="tl-item" style="flex:1">
+        <div class="tl-dot"></div>
+        <span class="tl-date">${esc(m.date)}</span>
+        <span class="tl-title">${esc(m.title)}</span>
+        <span class="tl-arr">→</span>
+      </a>
+      <button class="icon-btn" onclick="delMinute('${esc(slug(m.file))}')" title="削除">🗑</button>
+    </div>`).join('');
   document.getElementById('qa-title').focus();
   showToast('保存しました ✓');
 }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
@@ -1502,23 +1544,31 @@ async function renderBlueprint(){
 
 // ═══ Key Points ═════════════════════════════════════════
 const TYPE_LABELS={insight:'💡 気づき',action:'✅ アクション',question:'❓ 疑問',risk:'⚠️ リスク'};
+let _ptFilter=null;
 
 function renderPoints(){
   const reList=()=>{
-    const pts=getPoints();
-    if(!pts.length) return '<p class="empty">まだポイントがありません。＋ボタンから追加してください。</p>';
-    return `<div class="points-list">${pts.map((p,i)=>`
-      <div class="point-card">
+    const all=getPoints();
+    const pts=_ptFilter?all.filter(p=>p.type===_ptFilter):all;
+    if(!pts.length) return '<p class="empty">'+(_ptFilter?'この種別のポイントはありません。':'まだポイントがありません。＋ボタンから追加してください。')+'</p>';
+    return `<div class="points-list">${pts.map((p,i)=>{
+      const realIdx=all.indexOf(p);
+      return `<div class="point-card">
         <span class="point-tag ${esc(p.type||'insight')}">${TYPE_LABELS[p.type]||'💡 気づき'}</span>
         <div class="point-body"><div class="point-text">${esc(p.text)}</div><div class="point-meta">${esc(p.date||'')}${p.source?' · '+esc(p.source):''}</div></div>
-        <div class="point-actions"><button class="icon-btn" onclick="editPoint(${i})">✏️</button><button class="icon-btn" onclick="delPoint(${i})">🗑</button></div>
-      </div>`).join('')}</div>`;
+        <div class="point-actions"><button class="icon-btn" onclick="editPoint(${realIdx})">✏️</button><button class="icon-btn" onclick="delPoint(${realIdx})">🗑</button></div>
+      </div>`;}).join('')}</div>`;
   };
+  const filterBtns=`<div class="pt-filters">
+    <button class="pt-filter-btn${!_ptFilter?' active':''}" onclick="window._setPtFilter(null)">すべて</button>
+    ${Object.entries(TYPE_LABELS).map(([k,v])=>`<button class="pt-filter-btn${_ptFilter===k?' active':''}" onclick="window._setPtFilter('${k}')">${v}</button>`).join('')}
+  </div>`;
   app().innerHTML=`
     <div class="page-heading"><h2>ポイントまとめ</h2><button class="btn btn-ghost btn-sm" onclick="exportPoints()">⬇ MD出力</button></div>
-    <div class="row" style="margin-bottom:16px">${Object.entries(TYPE_LABELS).map(([k,v])=>`<span class="point-tag ${k}">${v}</span>`).join('')}</div>
+    ${filterBtns}
     <div id="pts-list">${reList()}</div>`;
   window._rePts=()=>{document.getElementById('pts-list').innerHTML=reList();};
+  window._setPtFilter=function(f){_ptFilter=f;renderPoints();};
   addFab(()=>openPointModal(null));
 }
 
@@ -1588,6 +1638,7 @@ function renderIdeas(){
   const svg=document.getElementById('mm-svg');
   if(!svg)return;
   svg.addEventListener('mousedown',mmMD);svg.addEventListener('click',mmCk);
+  svg.addEventListener('dblclick',e=>{const g=e.target.closest('[data-id]');if(!g)return;mm.sel=g.getAttribute('data-id');mmRender();mmEdit();});
   svg.addEventListener('touchstart',mmTS,{passive:false});
   const w=document.querySelector('.mm-wrap');if(w){w.scrollLeft=400;w.scrollTop=180;}
 }
@@ -1738,10 +1789,68 @@ window.mmReset=()=>{
 // ═══ Notes ══════════════════════════════════════════════
 function renderNotesList(){
   const items=(getIdx().notes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
-  const list=!items.length?'<p class="empty">メモはまだありません。</p>'
-    :items.map(n=>`<a href="#/notes/${esc(slug(n.file))}" class="list-item"><span class="list-item-title">${esc(n.title)}</span><span class="list-item-date">${esc(n.date)}</span></a>`).join('');
-  app().innerHTML=`<div class="page-heading"><h2>メモ・調査資料</h2></div><div class="item-list">${list}</div>`;
+  const list=!items.length?'<p class="empty">まだメモがありません。上のフォームから追加しましょう。</p>'
+    :items.map(n=>`
+      <div style="display:flex;align-items:center;gap:6px">
+        <a href="#/notes/${esc(slug(n.file))}" class="list-item" style="flex:1">
+          <span class="list-item-title">${esc(n.title)}</span>
+          <span class="list-item-date">${esc(n.date)}</span>
+        </a>
+        <button class="icon-btn" onclick="delNote('${esc(slug(n.file))}')" title="削除">🗑</button>
+      </div>`).join('');
+  app().innerHTML=`
+    <div class="page-heading"><h2>メモ・調査資料</h2></div>
+    <div class="quick-add" style="margin-bottom:16px">
+      <div class="quick-add-title">＋ メモを追加</div>
+      <div class="qa-row">
+        <input class="form-input" id="nt-title" placeholder="タイトル（例: 競合調査、市場メモ）">
+        <input class="form-input form-input-date" id="nt-date" type="date" value="${today()}">
+      </div>
+      <textarea class="form-textarea mono" id="nt-body" rows="5" style="margin-bottom:10px" placeholder="メモ内容…"></textarea>
+      <div style="display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="saveQuickNote()">追加する　→</button>
+      </div>
+    </div>
+    <div class="item-list" id="note-list">${list}</div>`;
 }
+
+window.saveQuickNote=function(){try{
+  const t=document.getElementById('nt-title').value.trim();
+  const d=document.getElementById('nt-date').value.trim();
+  const c=document.getElementById('nt-body').value;
+  if(!t||!d){alert('タイトルと日付を入力してください');return;}
+  const s=d+'-'+t.replace(/[\s　]+/g,'-').replace(/[^\w぀-鿿-]/g,'').slice(0,30)||'note';
+  const file=`notes/${s}.md`;
+  saveFile('content/'+file,`# ${t}\n\n${c}`);
+  const idx=getIdx();
+  idx.notes=(idx.notes||[]).filter(n=>slug(n.file)!==s);
+  idx.notes.push({file,title:t,date:d});
+  saveIdx(idx);
+  document.getElementById('nt-title').value='';
+  document.getElementById('nt-body').value='';
+  document.getElementById('nt-date').value=today();
+  const items=(getIdx().notes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('note-list').innerHTML=items.map(n=>`
+    <div style="display:flex;align-items:center;gap:6px">
+      <a href="#/notes/${esc(slug(n.file))}" class="list-item" style="flex:1">
+        <span class="list-item-title">${esc(n.title)}</span>
+        <span class="list-item-date">${esc(n.date)}</span>
+      </a>
+      <button class="icon-btn" onclick="delNote('${esc(slug(n.file))}')" title="削除">🗑</button>
+    </div>`).join('');
+  document.getElementById('nt-title').focus();
+  showToast('保存しました ✓');
+}catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
+
+window.delNote=function(sl){
+  if(!confirm('このメモを削除しますか？'))return;
+  try{
+    const idx=getIdx();
+    idx.notes=(idx.notes||[]).filter(n=>slug(n.file)!==sl);
+    saveIdx(idx);LS.del('f:content/notes/'+sl+'.md');
+    renderNotesList();showToast('削除しました');
+  }catch(e){showToast('⚠️ 削除失敗: '+e.message,true);}
+};
 
 async function renderNote(sl){
   app().innerHTML=`<a href="#/notes" class="back-link">← 一覧へ</a><div class="loading">読み込み中…</div>`;
@@ -1757,13 +1866,95 @@ async function renderNote(sl){
   document.getElementById('edit-note').onclick=()=>openMdEditor(entry?.title||sl,fp,text,nc=>{text=nc;document.getElementById('note-body').innerHTML=marked.parse(nc);});
 }
 
+window.delMinute=function(sl){
+  if(!confirm('この記録を削除しますか？'))return;
+  try{
+    const idx=getIdx();
+    idx.minutes=(idx.minutes||[]).filter(m=>slug(m.file)!==sl);
+    saveIdx(idx);LS.del('f:content/minutes/'+sl+'.md');
+    renderMinutesList();showToast('削除しました');
+  }catch(e){showToast('⚠️ 削除失敗: '+e.message,true);}
+};
+
 // ═══ Links ══════════════════════════════════════════════
 function renderLinks(){
   const links=getCfg().links||[];
-  const html=!links.length?'<p class="empty">config.json の links に追加してください。</p>'
-    :links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card"><span class="link-label">${esc(l.label)}</span><span class="link-arrow">↗</span></a>`).join('');
-  app().innerHTML=`<div class="page-heading"><h2>リンク集</h2></div><div class="links-list">${html}</div>`;
+  const rows=!links.length?'<p class="empty">リンクがありません。「＋ 追加」から追加しましょう。</p>'
+    :links.map((l,i)=>`
+      <div class="link-row">
+        <a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card">
+          <span class="link-label">${esc(l.label)}</span>
+          <span class="link-arrow">↗</span>
+        </a>
+        <div class="link-row-actions">
+          <button class="icon-btn" onclick="openEditLink(${i})" title="編集">✏️</button>
+          <button class="icon-btn" onclick="delLink(${i})" title="削除">🗑</button>
+        </div>
+      </div>`).join('');
+  app().innerHTML=`
+    <div class="page-heading">
+      <h2>リンク集</h2>
+      <button class="btn btn-ghost btn-sm" onclick="openAddLink()">＋ 追加</button>
+    </div>
+    <div class="links-list" id="links-list">${rows}</div>`;
 }
+
+function _reRenderLinks(){
+  const links=getCfg().links||[];
+  const el=document.getElementById('links-list');if(!el)return;
+  el.innerHTML=!links.length?'<p class="empty">リンクがありません。</p>'
+    :links.map((l,i)=>`
+      <div class="link-row">
+        <a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer" class="link-card">
+          <span class="link-label">${esc(l.label)}</span><span class="link-arrow">↗</span>
+        </a>
+        <div class="link-row-actions">
+          <button class="icon-btn" onclick="openEditLink(${i})">✏️</button>
+          <button class="icon-btn" onclick="delLink(${i})">🗑</button>
+        </div>
+      </div>`).join('');
+}
+
+window.openAddLink=function(){
+  openModal('リンクを追加',
+    `<div class="form-group"><label class="form-label">ラベル</label><input class="form-input" id="lnk-label" placeholder="例: 競合サイト、参考資料"></div>
+     <div class="form-group"><label class="form-label">URL</label><input class="form-input" id="lnk-url" placeholder="https://..."></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._saveLink(null)">追加</button>`);
+  setTimeout(()=>document.getElementById('lnk-label')?.focus(),50);
+  window._saveLink=function(idx){try{
+    const label=document.getElementById('lnk-label').value.trim();
+    const url=document.getElementById('lnk-url').value.trim();
+    if(!label||!url){alert('ラベルとURLを入力してください');return;}
+    const c=getCfg();c.links=c.links||[];
+    if(idx===null)c.links.push({label,url});else c.links[idx]={label,url};
+    saveCfg(c);closeModal();_reRenderLinks();showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
+};
+
+window.openEditLink=function(idx){
+  const l=(getCfg().links||[])[idx];if(!l)return;
+  openModal('リンクを編集',
+    `<div class="form-group"><label class="form-label">ラベル</label><input class="form-input" id="lnk-label" value="${esc(l.label)}"></div>
+     <div class="form-group"><label class="form-label">URL</label><input class="form-input" id="lnk-url" value="${esc(l.url)}"></div>`,
+    `<button class="btn btn-danger btn-sm" onclick="delLink(${idx});closeModal()">削除</button>
+     <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+     <button class="btn btn-primary" onclick="window._saveLink(${idx})">保存</button>`);
+  window._saveLink=function(i){try{
+    const label=document.getElementById('lnk-label').value.trim();
+    const url=document.getElementById('lnk-url').value.trim();
+    if(!label||!url){alert('ラベルとURLを入力してください');return;}
+    const c=getCfg();c.links=c.links||[];
+    if(i===null)c.links.push({label,url});else c.links[i]={label,url};
+    saveCfg(c);closeModal();_reRenderLinks();showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
+};
+
+window.delLink=function(idx){
+  if(!confirm('このリンクを削除しますか？'))return;
+  try{const c=getCfg();c.links=(c.links||[]).filter((_,i)=>i!==idx);saveCfg(c);_reRenderLinks();showToast('削除しました');}
+  catch(e){showToast('⚠️ 削除失敗: '+e.message,true);}
+};
 
 // ═══ FAB ════════════════════════════════════════════════
 function addFab(onClick){
@@ -1771,6 +1962,50 @@ function addFab(onClick){
   btn.className='fab';btn.innerHTML='+';btn.onclick=onClick;
   app().appendChild(btn);
 }
+
+// ═══ Home task quick-cycle ══════════════════════════════
+window.homeCycleTask=function(pid,tid){try{
+  const rm=getRoadmap();
+  const ph=rm.phases.find(p=>p.id===pid);
+  if(!ph){showToast('⚠️ フェーズが見つかりません',true);return;}
+  const t=ph.tasks.find(x=>x.id===tid);
+  if(!t){showToast('⚠️ タスクが見つかりません',true);return;}
+  const prev=t.status;
+  t.status=t.status==='todo'?'doing':t.status==='doing'?'done':'todo';
+  saveRoadmap(rm);
+  const labels={todo:'未着手',doing:'進行中',done:'完了'};
+  showToast(`${labels[prev]} → ${labels[t.status]}`);
+  renderHome();
+}catch(e){showToast('⚠️ エラー: '+e.message,true);}};
+
+// ═══ Data export / import ═══════════════════════════════
+window.exportData=function(){
+  const state={cfg:getCfg(),roadmap:getRoadmap(),canvas:getCanvas(),pts:getPoints(),idx:getIdx(),mm:LS.get('mm'),files:{}};
+  for(const k of Object.keys(localStorage)){if(k.startsWith('f:'))state.files[k]=localStorage.getItem(k);}
+  const date=new Date().toISOString().split('T')[0];
+  dlText(JSON.stringify(state,null,2),`kigyou-backup-${date}.json`);
+  showToast('バックアップをダウンロードしました ✓');
+};
+
+window.importData=function(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=async function(e){try{
+    const text=await e.target.files[0].text();
+    const state=JSON.parse(text);
+    if(!confirm('現在のデータをバックアップから上書きします。よろしいですか？'))return;
+    if(state.cfg)LS.set('cfg',state.cfg);
+    if(state.roadmap)LS.set('roadmap',state.roadmap);
+    if(state.canvas)LS.set('canvas',state.canvas);
+    if(state.pts)LS.set('pts',state.pts);
+    if(state.idx)LS.set('idx',state.idx);
+    if(state.mm)LS.set('mm',state.mm);
+    if(state.files){for(const[k,v]of Object.entries(state.files))localStorage.setItem(k,v);}
+    showToast('✓ インポート完了 — 再読み込みします');
+    setTimeout(()=>location.reload(),1500);
+  }catch(e){showToast('⚠️ インポート失敗: '+e.message,true);}};
+  input.click();
+};
 
 // ═══ Boot ═══════════════════════════════════════════════
 init();
