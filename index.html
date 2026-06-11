@@ -711,6 +711,14 @@ document.getElementById('modal-overlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('modal-overlay'))closeModal();
 });
 
+// ═══ Global error handlers ══════════════════════════════
+window.onerror=function(msg,_src,_line,_col,err){
+  showToast('⚠️ '+(err?.message||msg),true);return false;
+};
+window.addEventListener('unhandledrejection',function(e){
+  showToast('⚠️ '+(e.reason?.message||String(e.reason)),true);
+});
+
 // ═══ Gist Sync ══════════════════════════════════════════
 const _GIST_FILE = 'kigyou-dashboard.json';
 let _syncTimer = null;
@@ -825,24 +833,26 @@ async function init(){
 }
 
 function route(){
-  const path=(location.hash||'#/').slice(1)||'/';
-  document.querySelectorAll('#main-nav a').forEach(a=>{
-    const h=a.getAttribute('href').slice(1);
-    a.classList.toggle('active',path===h||(h!=='/'&&path.startsWith(h+'/')));
-  });
-  if(path==='/')             return renderHome();
-  if(path==='/roadmap')      return renderRoadmap();
-  if(path==='/canvas')       return renderCanvas();
-  if(path==='/minutes')      return renderMinutesList();
-  if(path.startsWith('/minutes/')) return renderMinute(path.slice(9));
-  if(path==='/decisions')    return renderDecisions();
-  if(path==='/ideas')        return renderIdeas();
-  if(path==='/points')       return renderPoints();
-  if(path==='/blueprint')    return renderBlueprint();
-  if(path==='/notes')        return renderNotesList();
-  if(path.startsWith('/notes/')) return renderNote(path.slice(7));
-  if(path==='/links')        return renderLinks();
-  renderHome();
+  try{
+    const path=(location.hash||'#/').slice(1)||'/';
+    document.querySelectorAll('#main-nav a').forEach(a=>{
+      const h=a.getAttribute('href').slice(1);
+      a.classList.toggle('active',path===h||(h!=='/'&&path.startsWith(h+'/')));
+    });
+    if(path==='/')             return renderHome();
+    if(path==='/roadmap')      return renderRoadmap();
+    if(path==='/canvas')       return renderCanvas();
+    if(path==='/minutes')      return renderMinutesList();
+    if(path.startsWith('/minutes/')) return renderMinute(path.slice(9));
+    if(path==='/decisions')    return renderDecisions();
+    if(path==='/ideas')        return renderIdeas();
+    if(path==='/points')       return renderPoints();
+    if(path==='/blueprint')    return renderBlueprint();
+    if(path==='/notes')        return renderNotesList();
+    if(path.startsWith('/notes/')) return renderNote(path.slice(7));
+    if(path==='/links')        return renderLinks();
+    renderHome();
+  }catch(e){showToast('⚠️ 表示エラー: '+e.message,true);}
 }
 
 // ═══ Icon chips ══════════════════════════════════════════
@@ -1060,19 +1070,20 @@ function openProjectEditor(){
      <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
      <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="3">${esc(bulletsStr)}</textarea></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="
-       const n=document.getElementById('pe-name').value.trim();
-       if(!n){alert('プロジェクト名を入力してください');return;}
-       const headline=document.getElementById('pe-concept').value.trim();
-       const bullets=document.getElementById('pe-bullets').value.split(/\n/).map(s=>s.trim()).filter(Boolean);
-       const c={...getCfg(),projectName:n,concept:{headline,bullets}};
-       saveCfg(c);
-       const tok=document.getElementById('pe-token').value.trim();
-       if(tok) LS.set('gh_token',tok); else LS.del('gh_token');
-       document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
-       closeModal();renderHome();showToast('保存しました ✓');
-       if(tok && !LS.get('gist_id')) gistPull(tok).then(ok=>{ if(!ok) gistPush(); });
-     ">保存</button>`);
+     <button class="btn btn-primary" onclick="window._savePrj()">保存</button>`);
+  window._savePrj=function(){try{
+    const n=document.getElementById('pe-name').value.trim();
+    if(!n){alert('プロジェクト名を入力してください');return;}
+    const headline=document.getElementById('pe-concept').value.trim();
+    const bullets=document.getElementById('pe-bullets').value.split(/\n/).map(s=>s.trim()).filter(Boolean);
+    const c={...getCfg(),projectName:n,concept:{headline,bullets}};
+    saveCfg(c);
+    const tok=document.getElementById('pe-token').value.trim();
+    if(tok)LS.set('gh_token',tok);else LS.del('gh_token');
+    document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
+    closeModal();renderHome();showToast('保存しました ✓');
+    if(tok&&!LS.get('gist_id'))gistPull(tok).then(ok=>{if(!ok)gistPush();});
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
 }
 
 // ═══ Phase editor ════════════════════════════════════════
@@ -1095,10 +1106,11 @@ function openPhaseEditor(){
     `<div id="phase-rows">${rows()}</div>
      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="window._pd.push({name:'新しいフェーズ',status:'todo'});window._rp()">＋ フェーズを追加</button>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="
-       document.querySelectorAll('.phase-row').forEach((r,i)=>{const inp=r.querySelector('.phase-row-name');if(inp&&window._pd[i])window._pd[i].name=inp.value;});
-       saveCfg({...getCfg(),phases:window._pd});closeModal();renderHome();showToast('保存しました ✓');
-     ">保存</button>`);
+     <button class="btn btn-primary" onclick="window._savePhEd()">保存</button>`);
+  window._savePhEd=function(){try{
+    document.querySelectorAll('.phase-row').forEach((r,i)=>{const inp=r.querySelector('.phase-row-name');if(inp&&window._pd[i])window._pd[i].name=inp.value;});
+    saveCfg({...getCfg(),phases:window._pd});closeModal();renderHome();showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
 }
 
 // ═══ Markdown editor ════════════════════════════════════
@@ -1198,16 +1210,15 @@ function rmToggle(pid){
   tog.classList.toggle('open',hidden);
 }
 
-window.rmCycleStatus=function(pid,tid){
+window.rmCycleStatus=function(pid,tid){try{
   const rm=getRoadmap();
   const ph=rm.phases.find(p=>p.id===pid);
-  if(!ph) return;
+  if(!ph){showToast('⚠️ フェーズが見つかりません',true);return;}
   const t=ph.tasks.find(x=>x.id===tid);
-  if(!t) return;
+  if(!t){showToast('⚠️ タスクが見つかりません',true);return;}
   t.status=t.status==='todo'?'doing':t.status==='doing'?'done':'todo';
-  saveRoadmap(rm);
-  renderRoadmap();
-};
+  saveRoadmap(rm);renderRoadmap();
+}catch(e){showToast('⚠️ エラー: '+e.message,true);}};
 
 window.rmDelTask=function(pid,tid){
   const rm=getRoadmap();
@@ -1273,13 +1284,14 @@ window.openAddPhase=function(){
   openModal('フェーズを追加',
     `<div class="form-group"><label class="form-label">フェーズ名</label><input class="form-input" id="ph-name" placeholder="例: Phase 2: 事業モデル設計"></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="
-       const n=document.getElementById('ph-name').value.trim();
-       if(!n){alert('フェーズ名を入力してください');return;}
-       const rm=getRoadmap();
-       rm.phases.push({id:'p'+(rm.nextId++),name:n,tasks:[]});
-       saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
-     ">追加</button>`);
+     <button class="btn btn-primary" onclick="window._saveAddPh()">追加</button>`);
+  window._saveAddPh=function(){try{
+    const n=document.getElementById('ph-name').value.trim();
+    if(!n){alert('フェーズ名を入力してください');return;}
+    const rm=getRoadmap();
+    rm.phases.push({id:'p'+(rm.nextId=(rm.nextId||10)+1),name:n,tasks:[]});
+    saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
   setTimeout(()=>document.getElementById('ph-name')?.focus(),50);
 };
 
@@ -1289,13 +1301,16 @@ window.openEditPhase=function(pid){
   openModal('フェーズを編集',
     `<div class="form-group"><label class="form-label">フェーズ名</label><input class="form-input" id="ph-name" value="${esc(ph.name)}"></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="
-       const n=document.getElementById('ph-name').value.trim();
-       if(!n) return;
-       const rm=getRoadmap();
-       const p=rm.phases.find(x=>x.id==='${esc(pid)}');
-       if(p)p.name=n;saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
-     ">保存</button>`);
+     <button class="btn btn-primary" onclick="window._saveEditPh()">保存</button>`);
+  window._editPid='${esc(pid)}';
+  window._saveEditPh=function(){try{
+    const n=document.getElementById('ph-name').value.trim();
+    if(!n)return;
+    const rm=getRoadmap();
+    const p=rm.phases.find(x=>x.id===window._editPid);
+    if(!p){showToast('⚠️ フェーズが見つかりません',true);return;}
+    p.name=n;saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
   setTimeout(()=>{const i=document.getElementById('ph-name');if(i){i.focus();i.select();}},50);
 };
 
@@ -1339,7 +1354,8 @@ function renderCanvas(){
 }
 
 window.saveCanvasField=function(key,val){
-  const c=getCanvas();c[key]=val;saveCanvas(c);
+  try{const c=getCanvas();c[key]=val;saveCanvas(c);}
+  catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}
 };
 
 window.exportCanvas=function(){
@@ -1385,7 +1401,7 @@ function renderMinutesList(){
     <div class="tl-list" id="tl-list">${tlHtml}</div>`;
 }
 
-window.saveQuickMinute=function(){
+window.saveQuickMinute=function(){try{
   const t=document.getElementById('qa-title').value.trim();
   const d=document.getElementById('qa-date').value.trim();
   const c=document.getElementById('qa-body').value;
@@ -1410,7 +1426,8 @@ window.saveQuickMinute=function(){
       <span class="tl-arr">→</span>
     </a>`).join('');
   document.getElementById('qa-title').focus();
-};
+  showToast('保存しました ✓');
+}catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
 
 function openAddMinute(){
   location.hash='#/minutes';
@@ -1494,14 +1511,14 @@ function openPointModal(editIdx){
     `${editIdx!==null?`<button class="btn btn-danger btn-sm" onclick="delPoint(${editIdx});closeModal()">削除</button>`:''}
      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="window._savePt(${editIdx??-1})">保存</button>`);
-  window._savePt=(idx)=>{
+  window._savePt=(idx)=>{try{
     const text=document.getElementById('pt-text').value.trim();
     if(!text){alert('内容を入力してください');return;}
     const item={type:document.getElementById('pt-type').value,text,date:document.getElementById('pt-date').value,source:document.getElementById('pt-src').value.trim()};
     const pts=getPoints();
     if(idx>=0)pts[idx]=item;else pts.unshift(item);
     savePoints(pts);closeModal();showToast('保存しました ✓');if(window._rePts)window._rePts();
-  };
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
 }
 
 window.editPoint=(i)=>openPointModal(i);
@@ -1675,10 +1692,14 @@ window.mmEdit=()=>{
   openModal('ノードを編集',
     `<div class="form-group"><label class="form-label">テキスト</label><input class="form-input" id="mm-inp" value="${esc(n.text)}" style="font-size:16px"></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-     <button class="btn btn-primary" onclick="
-       const v=document.getElementById('mm-inp').value.trim();
-       if(v){const nd=mm.data.nodes.find(x=>x.id===mm.sel);if(nd)nd.text=v;saveMM(mm.data);closeModal();showToast('保存しました ✓');mmRender();}
-     ">保存</button>`);
+     <button class="btn btn-primary" onclick="window._saveMmNode()">保存</button>`);
+  window._saveMmNode=function(){try{
+    const v=document.getElementById('mm-inp').value.trim();
+    if(!v)return;
+    const nd=mm.data.nodes.find(x=>x.id===mm.sel);
+    if(!nd){showToast('⚠️ ノードが見つかりません',true);return;}
+    nd.text=v;saveMM(mm.data);closeModal();showToast('保存しました ✓');mmRender();
+  }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
   setTimeout(()=>{const i=document.getElementById('mm-inp');if(i){i.focus();i.select();}},50);
 };
 window.mmDel=()=>{
