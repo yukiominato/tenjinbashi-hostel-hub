@@ -563,6 +563,13 @@
     .empty { color: var(--text-dim); font-size: 14px; padding: 24px 0; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    #toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #22c55e; color: #fff; font-size: 14px; font-weight: 600;
+      padding: 10px 22px; border-radius: 999px; box-shadow: 0 4px 20px rgba(0,0,0,.4);
+      opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ── Sync badge ──────────────────────────────────────── */
     .sync-badge {
@@ -583,6 +590,7 @@
   </style>
 </head>
 <body>
+<div id="toast"></div>
 
 <header>
   <div class="header-inner">
@@ -682,6 +690,14 @@ function openModal(title,body,footer=''){
 function closeModal(){
   document.getElementById('modal-overlay').classList.remove('open');
   document.body.style.overflow='';
+}
+let _toastTimer=null;
+function showToast(msg='保存しました ✓'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
 }
 document.getElementById('modal-close-btn').onclick=closeModal;
 document.getElementById('modal-overlay').addEventListener('click',e=>{
@@ -1047,7 +1063,7 @@ function openProjectEditor(){
        const tok=document.getElementById('pe-token').value.trim();
        if(tok) LS.set('gh_token',tok); else LS.del('gh_token');
        document.getElementById('header-logo').textContent=n;document.getElementById('page-title').textContent=n;
-       closeModal();renderHome();
+       closeModal();renderHome();showToast('保存しました ✓');
        if(tok && !LS.get('gist_id')) gistPull(tok).then(ok=>{ if(!ok) gistPush(); });
      ">保存</button>`);
 }
@@ -1074,7 +1090,7 @@ function openPhaseEditor(){
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        document.querySelectorAll('.phase-row').forEach((r,i)=>{const inp=r.querySelector('.phase-row-name');if(inp&&window._pd[i])window._pd[i].name=inp.value;});
-       saveCfg({...getCfg(),phases:window._pd});closeModal();renderHome();
+       saveCfg({...getCfg(),phases:window._pd});closeModal();renderHome();showToast('保存しました ✓');
      ">保存</button>`);
 }
 
@@ -1086,7 +1102,7 @@ function openMdEditor(title,fp,content,onSave){
     `<button class="btn btn-ghost btn-sm" onclick="dlText(document.getElementById('md-ta').value,'${esc(fp.replace(/^.*\//,''))}')">⬇ DL</button>
      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="window._mds()">保存</button>`);
-  window._mds=()=>{const v=document.getElementById('md-ta').value;saveFile(fp,v);onSave(v);closeModal();};
+  window._mds=()=>{const v=document.getElementById('md-ta').value;saveFile(fp,v);onSave(v);closeModal();showToast('保存しました ✓');};
   setTimeout(()=>{const ta=document.getElementById('md-ta');if(ta)ta.setSelectionRange(0,0);},50);
 }
 
@@ -1239,7 +1255,7 @@ window._saveTask=function(pid,tid){
   if(!ph) return;
   const item={id:tid||'t'+(rm.nextId++),text,date:document.getElementById('tk-date').value,status:document.getElementById('tk-st').value};
   if(tid) {const i=ph.tasks.findIndex(t=>t.id===tid);if(i>=0)ph.tasks[i]=item;} else ph.tasks.push(item);
-  saveRoadmap(rm);closeModal();renderRoadmap();
+  saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
 };
 
 window.openAddPhase=function(){
@@ -1251,7 +1267,7 @@ window.openAddPhase=function(){
        if(!n){alert('フェーズ名を入力してください');return;}
        const rm=getRoadmap();
        rm.phases.push({id:'p'+(rm.nextId++),name:n,tasks:[]});
-       saveRoadmap(rm);closeModal();renderRoadmap();
+       saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
      ">追加</button>`);
   setTimeout(()=>document.getElementById('ph-name')?.focus(),50);
 };
@@ -1267,7 +1283,7 @@ window.openEditPhase=function(pid){
        if(!n) return;
        const rm=getRoadmap();
        const p=rm.phases.find(x=>x.id==='${esc(pid)}');
-       if(p)p.name=n;saveRoadmap(rm);closeModal();renderRoadmap();
+       if(p)p.name=n;saveRoadmap(rm);closeModal();renderRoadmap();showToast('保存しました ✓');
      ">保存</button>`);
   setTimeout(()=>{const i=document.getElementById('ph-name');if(i){i.focus();i.select();}},50);
 };
@@ -1473,7 +1489,7 @@ function openPointModal(editIdx){
     const item={type:document.getElementById('pt-type').value,text,date:document.getElementById('pt-date').value,source:document.getElementById('pt-src').value.trim()};
     const pts=getPoints();
     if(idx>=0)pts[idx]=item;else pts.unshift(item);
-    savePoints(pts);closeModal();if(window._rePts)window._rePts();
+    savePoints(pts);closeModal();showToast('保存しました ✓');if(window._rePts)window._rePts();
   };
 }
 
@@ -1650,7 +1666,7 @@ window.mmEdit=()=>{
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        const v=document.getElementById('mm-inp').value.trim();
-       if(v){const nd=mm.data.nodes.find(x=>x.id===mm.sel);if(nd)nd.text=v;saveMM(mm.data);closeModal();mmRender();}
+       if(v){const nd=mm.data.nodes.find(x=>x.id===mm.sel);if(nd)nd.text=v;saveMM(mm.data);closeModal();showToast('保存しました ✓');mmRender();}
      ">保存</button>`);
   setTimeout(()=>{const i=document.getElementById('mm-inp');if(i){i.focus();i.select();}},50);
 };
