@@ -1380,8 +1380,8 @@ function renderIdeas(){
   mmRender();
   const svg=document.getElementById('mm-svg');
   if(!svg)return;
-  svg.addEventListener('mousedown',mmMD);svg.addEventListener('mousemove',mmMM);svg.addEventListener('mouseup',mmMU);svg.addEventListener('mouseleave',mmMU);svg.addEventListener('click',mmCk);
-  svg.addEventListener('touchstart',mmTS,{passive:false});svg.addEventListener('touchmove',mmTM,{passive:false});svg.addEventListener('touchend',mmTE);
+  svg.addEventListener('mousedown',mmMD);svg.addEventListener('click',mmCk);
+  svg.addEventListener('touchstart',mmTS,{passive:false});
   const w=document.querySelector('.mm-wrap');if(w){w.scrollLeft=400;w.scrollTop=180;}
 }
 
@@ -1430,13 +1430,67 @@ function mmRender(){
 
 function svgPt(e,s){const p=s.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(s.getScreenCTM().inverse());}
 function svgPtT(t,s){const p=s.createSVGPoint();p.x=t.clientX;p.y=t.clientY;return p.matrixTransform(s.getScreenCTM().inverse());}
-function mmMD(e){const g=e.target.closest('[data-id]');if(!g)return;e.stopPropagation();const id=g.getAttribute('data-id');mm.sel=id;mm.drag=id;mm.moved=false;const svg=document.getElementById('mm-svg');const pt=svgPt(e,svg);mm.ds={x:pt.x,y:pt.y};const n=mm.data.nodes.find(x=>x.id===id);mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};mmRender();}
-function mmMM(e){if(!mm.drag)return;const svg=document.getElementById('mm-svg');const pt=svgPt(e,svg);const dx=pt.x-mm.ds.x,dy=pt.y-mm.ds.y;if(Math.abs(dx)+Math.abs(dy)>4)mm.moved=true;if(!mm.moved)return;const n=mm.data.nodes.find(x=>x.id===mm.drag);if(!n)return;n.x=mm.ns.x+dx;n.y=mm.ns.y+dy;if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}}
-function mmMU(){if(mm.drag&&mm.moved)saveMM(mm.data);mm.drag=null;}
+function mmMD(e){
+  const g=e.target.closest('[data-id]');if(!g)return;
+  e.preventDefault();e.stopPropagation();
+  const id=g.getAttribute('data-id');
+  mm.sel=id;mm.drag=id;mm.moved=false;
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPt(e,svg);mm.ds={x:pt.x,y:pt.y};
+  const n=mm.data.nodes.find(x=>x.id===id);
+  mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};
+  mmRender();
+  document.addEventListener('mousemove',mmMM);
+  document.addEventListener('mouseup',mmMU);
+}
+function mmMM(e){
+  if(!mm.drag)return;
+  const svg=document.getElementById('mm-svg');if(!svg)return;
+  const pt=svgPt(e,svg);
+  const dx=pt.x-mm.ds.x,dy=pt.y-mm.ds.y;
+  if(Math.abs(dx)+Math.abs(dy)>3)mm.moved=true;
+  if(!mm.moved)return;
+  const n=mm.data.nodes.find(x=>x.id===mm.drag);if(!n)return;
+  n.x=mm.ns.x+dx;n.y=mm.ns.y+dy;
+  if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}
+}
+function mmMU(){
+  if(mm.drag&&mm.moved)saveMM(mm.data);
+  mm.drag=null;
+  document.removeEventListener('mousemove',mmMM);
+  document.removeEventListener('mouseup',mmMU);
+}
 function mmCk(e){if(!e.target.closest('[data-id]')&&!mm.moved){mm.sel=null;mmRender();}mm.moved=false;}
-function mmTS(e){const g=e.target.closest('[data-id]');if(!g)return;e.preventDefault();const id=g.getAttribute('data-id');mm.sel=id;mm.drag=id;mm.moved=false;const svg=document.getElementById('mm-svg');const pt=svgPtT(e.touches[0],svg);mm.ds={x:pt.x,y:pt.y};const n=mm.data.nodes.find(x=>x.id===id);mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};mmRender();}
-function mmTM(e){if(!mm.drag)return;e.preventDefault();const svg=document.getElementById('mm-svg');const pt=svgPtT(e.touches[0],svg);const dx=pt.x-mm.ds.x,dy=pt.y-mm.ds.y;if(Math.abs(dx)+Math.abs(dy)>4)mm.moved=true;if(!mm.moved)return;const n=mm.data.nodes.find(x=>x.id===mm.drag);if(!n)return;n.x=mm.ns.x+dx;n.y=mm.ns.y+dy;if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}}
-function mmTE(){if(mm.drag&&mm.moved)saveMM(mm.data);mm.drag=null;}
+function mmTS(e){
+  const g=e.target.closest('[data-id]');if(!g)return;
+  e.preventDefault();
+  const id=g.getAttribute('data-id');
+  mm.sel=id;mm.drag=id;mm.moved=false;
+  const svg=document.getElementById('mm-svg');
+  const pt=svgPtT(e.touches[0],svg);mm.ds={x:pt.x,y:pt.y};
+  const n=mm.data.nodes.find(x=>x.id===id);
+  mm.ns=n?{x:n.x,y:n.y}:{x:0,y:0};
+  mmRender();
+  document.addEventListener('touchmove',mmTM,{passive:false});
+  document.addEventListener('touchend',mmTE);
+}
+function mmTM(e){
+  if(!mm.drag)return;e.preventDefault();
+  const svg=document.getElementById('mm-svg');if(!svg)return;
+  const pt=svgPtT(e.touches[0],svg);
+  const dx=pt.x-mm.ds.x,dy=pt.y-mm.ds.y;
+  if(Math.abs(dx)+Math.abs(dy)>3)mm.moved=true;
+  if(!mm.moved)return;
+  const n=mm.data.nodes.find(x=>x.id===mm.drag);if(!n)return;
+  n.x=mm.ns.x+dx;n.y=mm.ns.y+dy;
+  if(!mm.raf){mm.raf=true;requestAnimationFrame(()=>{mm.raf=false;mmRender();});}
+}
+function mmTE(){
+  if(mm.drag&&mm.moved)saveMM(mm.data);
+  mm.drag=null;
+  document.removeEventListener('touchmove',mmTM);
+  document.removeEventListener('touchend',mmTE);
+}
 
 function mmAddChild(){
   const pid=mm.sel||'root';const parent=mm.data.nodes.find(n=>n.id===pid);if(!parent)return;
