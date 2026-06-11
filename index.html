@@ -1013,18 +1013,17 @@ function openProjectEditor(){
   const curToken=LS.get('gh_token')||'';
   const gistId=LS.get('gist_id')||'';
   openModal('プロジェクト設定',
-    `<div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
-     <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
-     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="4">${esc(bulletsStr)}</textarea></div>
-     <div class="divider"></div>
-     <div class="form-group">
+    `<div class="form-group">
        <label class="form-label">🔗 デバイス間同期 — GitHub Token</label>
        <input class="form-input" id="pe-token" type="password" placeholder="ghp_xxxxxxxxxxxx" value="${esc(curToken)}">
-       <p style="font-size:11px;color:var(--text-dim);margin-top:6px">github.com → Settings → Developer settings → Personal access tokens → <strong>Gist スコープのみ</strong>で作成</p>
+       <p style="font-size:11px;color:var(--text-dim);margin-top:5px">
+         <a href="https://github.com/settings/tokens/new?scopes=gist" target="_blank" style="color:var(--primary)">トークンを発行（Gist スコープのみ）</a>
+         してここに貼り付けると自動同期が有効になります
+       </p>
      </div>
      ${gistId?`
-     <div style="margin-top:8px">
-       <label class="form-label">🔗 共有URL（このURLを渡すだけで誰でも閲覧可）</label>
+     <div class="form-group">
+       <label class="form-label">📤 共有URL（このURLを渡すだけで誰でも閲覧可）</label>
        <div style="display:flex;gap:6px;align-items:center">
          <input class="form-input" id="pe-share-url" readonly value="${esc(location.origin+location.pathname+'?gist='+gistId)}" style="font-size:12px">
          <button class="btn btn-ghost btn-sm" style="flex-shrink:0" onclick="
@@ -1032,7 +1031,11 @@ function openProjectEditor(){
            this.textContent='✓ コピー済み';setTimeout(()=>this.textContent='コピー',1500);
          ">コピー</button>
        </div>
-     </div>`:''}`,
+     </div>`:''}
+     <div class="divider"></div>
+     <div class="form-group"><label class="form-label">プロジェクト名</label><input class="form-input" id="pe-name" value="${esc(cfg.projectName||'')}"></div>
+     <div class="form-group"><label class="form-label">構想・コンセプト（一文）</label><textarea class="form-textarea" id="pe-concept" rows="2">${esc(con.headline||'')}</textarea></div>
+     <div class="form-group"><label class="form-label">特徴・柱（1行につき1項目）</label><textarea class="form-textarea" id="pe-bullets" rows="3">${esc(bulletsStr)}</textarea></div>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="
        const n=document.getElementById('pe-name').value.trim();
