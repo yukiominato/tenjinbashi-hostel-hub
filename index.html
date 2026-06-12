@@ -849,12 +849,15 @@ async function gistPull(token) {
     if (!raw) { setSyncBadge('idle', ''); return false; }
     const state = JSON.parse(raw);
     if (state.cfg)     LS.set('cfg', state.cfg);
-    if (state.roadmap) LS.set('roadmap', state.roadmap);
+    // roadmap は _migrated フラグを付けて保存（再マイグレーション防止）
+    if (state.roadmap) LS.set('roadmap', {...state.roadmap, _migrated: true});
     if (state.canvas)  LS.set('canvas', state.canvas);
     if (state.pts)     LS.set('pts', state.pts);
     if (state.idx)     LS.set('idx', state.idx);
     if (state.mm)      LS.set('mm', state.mm);
-    if (state.files)   { for (const [k,v] of Object.entries(state.files)) LS.set(k, v); }
+    // ファイルは gistPush が localStorage.getItem の生文字列で保存しているため
+    // LS.set (JSON.stringify) を通すと二重エンコードになる → localStorage.setItem で直接復元
+    if (state.files)   { for (const [k,v] of Object.entries(state.files)) { try{ localStorage.setItem(k, v); }catch(e){} } }
     setSyncBadge('synced', '✓ 同期済み');
     return true;
   } catch(e) {
@@ -1153,8 +1156,14 @@ function openProjectEditor(){
       if(!hasGist||newTok!==oldTok){
         showToast('🔄 Gistに接続中…');
         gistPull(newTok).then(ok=>{
-          if(ok) showToast('✓ Gistからデータを取得しました');
-          else gistPush().then(()=>showToast('✓ Gistを新規作成して保存しました'));
+          if(ok){
+            showToast('✓ Gistからデータを取得しました');
+            // Pull 後はヘッダーと現在のページを最新データで更新
+            const nc=getCfg();
+            document.getElementById('header-logo').textContent=nc.projectName||'ダッシュボード';
+            document.getElementById('page-title').textContent=nc.projectName||'ダッシュボード';
+            route();
+          } else gistPush().then(()=>showToast('✓ Gistを新規作成して保存しました'));
         }).catch(e=>showToast('⚠️ 同期失敗: '+e.message,true));
       } else {
         scheduleSync();
