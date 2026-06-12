@@ -677,18 +677,45 @@ const saveCanvas = (c) => { LS.set('canvas',c); scheduleSync(); };
 
 function getRoadmap(){
   const s=LS.get('roadmap');
-  if(s) return s;
+  if(s){
+    // cfg.phases の status を roadmap に移行（初回のみ）
+    const cfgPh=getCfg().phases||[];
+    if(cfgPh.length&&s.phases&&s.phases.length&&!s._migrated){
+      s.phases=s.phases.map((p,i)=>{
+        const cp=cfgPh[i];
+        return cp&&cp.status&&!p.statusOverride?{...p,statusOverride:cp.status}:p;
+      });
+      s._migrated=true;
+      LS.set('roadmap',s);
+    }
+    return s;
+  }
   const phases=(getCfg().phases||[]).map((p,i)=>({
-    id:'p'+i, name:p.name,
+    id:'p'+i, name:p.name, statusOverride:p.status||null,
     tasks: i===0?[
       {id:'t0',text:'ターゲット顧客を5人インタビューする',status:'todo',date:''},
       {id:'t1',text:'リーンキャンバスを完成させる',status:'todo',date:''},
       {id:'t2',text:'市場・競合調査を実施する',status:'todo',date:''},
     ]:[]
   }));
-  return {nextId:10,phases};
+  return {nextId:10,phases,_migrated:true};
 }
 const saveRoadmap=(r)=>{ const ok=LS.set('roadmap',r); scheduleSync(); return ok; };
+
+// タスク完了率からフェーズ状態を自動計算（手動設定があればそちら優先）
+function computePhaseStatus(ph){
+  if(ph.statusOverride) return ph.statusOverride;
+  const tasks=ph.tasks||[];
+  if(!tasks.length) return 'todo';
+  const done=tasks.filter(t=>t.status==='done').length;
+  const doing=tasks.filter(t=>t.status==='doing').length;
+  if(done===tasks.length) return 'done';
+  if(doing>0||done>0) return 'active';
+  return 'todo';
+}
+function phasesForDisplay(rm){
+  return (rm||getRoadmap()).phases.map(p=>({...p,status:computePhaseStatus(p)}));
+}
 
 // ═══ Fetch ══════════════════════════════════════════════
 async function fetchJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(r.status+':'+p);return r.json();}
@@ -994,7 +1021,7 @@ function getTodayTasks(){
 function renderHome(){
   const cfg=getCfg();
   if(!cfg.projectName){app().innerHTML='<div class="loading">読み込み中…</div>';return;}
-  const phases=cfg.phases||[];
+  const phases=phasesForDisplay();
   const mins=(getIdx().minutes||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
   const lat=mins[0];
   const latCard=lat
@@ -1139,12 +1166,13 @@ function openProjectEditor(){
 // ═══ Phase editor ════════════════════════════════════════
 function openPhaseEditor(){
   const W=window;
-  W._pd=(getCfg().phases||[]).map(p=>({...p}));
+  // ロードマップをデータソースとして使用
+  W._pd=getRoadmap().phases.map(p=>({...p,status:computePhaseStatus(p)}));
   const rows=()=>W._pd.map((p,i)=>`
     <div class="phase-row">
       <input class="phase-row-name" value="${esc(p.name)}" oninput="window._pd[${i}].name=this.value">
       <div class="status-btns">
-        ${['done','active','todo'].map(s=>`<button class="s-btn ${s}${p.status===s?' on':''}" onclick="window._pd[${i}].status='${s}';_rp()">${s==='done'?'完了':s==='active'?'進行中':'未着手'}</button>`).join('')}
+        ${['done','active','todo'].map(s=>`<button class="s-btn ${s}${p.status===s?' on':''}" onclick="window._pd[${i}].statusOverride='${s}';window._pd[${i}].status='${s}';_rp()">${s==='done'?'完了':s==='active'?'進行中':'未着手'}</button>`).join('')}
       </div>
       <button class="icon-btn" onclick="window._pd.splice(${i},1);_rp()">🗑</button>
     </div>`).join('');
@@ -1153,13 +1181,23 @@ function openPhaseEditor(){
     document.getElementById('phase-rows').innerHTML=rows();
   };
   openModal('フェーズ進捗を編集',
-    `<div id="phase-rows">${rows()}</div>
-     <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="window._pd.push({name:'新しいフェーズ',status:'todo'});window._rp()">＋ フェーズを追加</button>`,
+    `<p style="font-size:12px;color:var(--text-dim);margin-bottom:12px">ステータスはタスク完了率から自動計算されます。手動で上書きも可能です。</p>
+     <div id="phase-rows">${rows()}</div>
+     <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="window._pd.push({id:'p'+Date.now(),name:'新しいフェーズ',status:'todo',tasks:[]});window._rp()">＋ フェーズを追加</button>`,
     `<button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
      <button class="btn btn-primary" onclick="window._savePhEd()">保存</button>`);
   window._savePhEd=function(){try{
-    document.querySelectorAll('.phase-row').forEach((r,i)=>{const inp=r.querySelector('.phase-row-name');if(inp&&window._pd[i])window._pd[i].name=inp.value;});
-    saveCfg({...getCfg(),phases:window._pd});closeModal();renderHome();showToast('保存しました ✓');
+    document.querySelectorAll('.phase-row').forEach((r,i)=>{const inp=r.querySelector('.phase-row-name');if(inp&&W._pd[i])W._pd[i].name=inp.value;});
+    const rm=getRoadmap();
+    const pdIds=new Set(W._pd.map(p=>p.id));
+    // 既存フェーズ: name と statusOverride を更新（tasks は維持）
+    const updated=W._pd.map(pd=>{
+      const existing=rm.phases.find(p=>p.id===pd.id);
+      if(existing) return {...existing,name:pd.name,statusOverride:pd.statusOverride||null};
+      return {id:pd.id,name:pd.name,statusOverride:pd.statusOverride||null,tasks:[]};
+    });
+    rm.phases=updated;
+    saveRoadmap(rm);closeModal();renderHome();showToast('保存しました ✓');
   }catch(e){showToast('⚠️ 保存失敗: '+e.message,true);}};
 }
 
@@ -1180,6 +1218,8 @@ function openMdEditor(title,fp,content,onSave){
 // ═══════════════════════════════════════════════════════
 function renderRoadmap(){
   const rm=getRoadmap();
+  // すごろく表示用にステータスを付与（タスク完了率から自動計算）
+  const rmDisplay={...rm,phases:phasesForDisplay(rm)};
   const focusTasks=[];
   for(const ph of rm.phases){
     for(const t of ph.tasks){
@@ -1226,7 +1266,7 @@ function renderRoadmap(){
       <button class="btn btn-ghost btn-sm" onclick="openAddPhase()">＋ フェーズ追加</button>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow)">
-      ${sugorokuHTML(rm.phases,false)}
+      ${sugorokuHTML(rmDisplay.phases,false)}
     </div>
     <div class="rm-focus">
       <div class="rm-focus-title">⚡ 進行中のタスク</div>
